@@ -1,0 +1,5 @@
+# Nixpacks configuration to fix cross-platform lockfile issue
+# This overrides 'npm ci' (which fails due to platform-specific optional dependencies) with 'npm install'
+
+[phases.install]
+cmds = ['npm install']
