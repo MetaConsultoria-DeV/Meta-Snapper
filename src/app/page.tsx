@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { bduApi } from "@/lib/api/bdu";
+import { periodoAtivo } from "@/lib/periodo-server";
 import { BRL } from "@/lib/mock-data";
 import { Kpi, Card, SectionTitle } from "@/components/dashboard/primitives";
 import { BarChart, Donut } from "@/components/dashboard/charts";
@@ -18,10 +19,11 @@ const SISTEMA = (o: Awaited<ReturnType<typeof bduApi.overview>>) => [
 ];
 
 export default async function HomePage() {
+  const { range } = await periodoAtivo();
   let o: Awaited<ReturnType<typeof bduApi.overview>>;
   let celulas: Awaited<ReturnType<typeof bduApi.celulas>>;
   try {
-    [o, celulas] = await Promise.all([bduApi.overview(), bduApi.celulas()]);
+    [o, celulas] = await Promise.all([bduApi.overview(range), bduApi.celulas()]);
   } catch {
     return (
       <div className="mx-auto max-w-[1480px]">

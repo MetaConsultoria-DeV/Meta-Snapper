@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { bduApi } from "@/lib/api/bdu";
+import { periodoAtivo } from "@/lib/periodo-server";
 import { FinanceiroView } from "./financeiro-view";
 import { ErrorState } from "@/components/shared/states";
 
@@ -21,6 +22,13 @@ export default async function FinanceiroPage() {
   return <FinanceiroView contratos={contratos} transacoes={transacoes} fluxo={fluxo} contas={contas} />;
 }
 
-function carregar() {
-  return Promise.all([bduApi.contratos(), bduApi.transacoes(), bduApi.fluxo(), bduApi.contas()]);
+async function carregar() {
+  // Contratos ficam fora do recorte: não têm datas confiáveis no banco.
+  const { range } = await periodoAtivo();
+  return Promise.all([
+    bduApi.contratos(),
+    bduApi.transacoes(range),
+    bduApi.fluxo(range),
+    bduApi.contas(range),
+  ]);
 }

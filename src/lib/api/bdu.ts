@@ -111,7 +111,7 @@ export type FactDTO = {
 type Periodo = { data_inicio?: string; data_fim?: string };
 
 export const bduApi = {
-  overview: () => apiGet<OverviewDTO>("/api/bdu/overview"),
+  overview: (p: Periodo = {}) => apiGet<OverviewDTO>("/api/bdu/overview", { params: p }),
   celulas: () => apiGet<CelulaDTO[]>("/api/bdu/estrutura/celulas"),
   pessoas: () => apiGet<PessoaDTO[]>("/api/bdu/estrutura/pessoas"),
 
@@ -123,10 +123,10 @@ export const bduApi = {
   clientesComercial: () => apiGet<ClienteComercialDTO[]>("/api/bdu/comercial/clientes"),
 
   contratos: () => apiGet<ContratoDTO[]>("/api/bdu/financeiro/contratos"),
-  transacoes: (tipo?: "entrada" | "saida") =>
-    apiGet<TransacaoDTO[]>("/api/bdu/financeiro/transacoes", { params: { tipo } }),
-  fluxo: () => apiGet<FluxoMesDTO[]>("/api/bdu/financeiro/fluxo"),
-  contas: () => apiGet<ContaSaldoDTO[]>("/api/bdu/financeiro/contas"),
+  transacoes: (p: Periodo & { tipo?: "entrada" | "saida" } = {}) =>
+    apiGet<TransacaoDTO[]>("/api/bdu/financeiro/transacoes", { params: p }),
+  fluxo: (p: Periodo = {}) => apiGet<FluxoMesDTO[]>("/api/bdu/financeiro/fluxo", { params: p }),
+  contas: (p: Periodo = {}) => apiGet<ContaSaldoDTO[]>("/api/bdu/financeiro/contas", { params: p }),
 
   servicosPortfolio: () => apiGet<ServicoPortfolioDTO[]>("/api/bdu/servicos/portfolio"),
   transversaisFacts: () => apiGet<FactDTO[]>("/api/bdu/transversais/facts"),
