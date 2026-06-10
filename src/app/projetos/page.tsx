@@ -31,14 +31,12 @@ export default async function ProjetosPage() {
         coordSigla: f.coordenacao_sigla ?? "",
         cliente: f.cliente,
         equipe: [],
-        servicos: [],
         descricao: f.descricao,
         status: (f.status === "finalizado" ? "concluido" : f.status) as "ativo" | "concluido" | "pausado" | undefined,
       };
       map.set(f.projeto_id, p);
     }
     if (f.membro && !p.equipe.includes(f.membro)) p.equipe.push(f.membro);
-    if (f.servico && !p.servicos.includes(f.servico)) p.servicos.push(f.servico);
     if (!p.cliente && f.cliente) p.cliente = f.cliente;
   }
   const projetos = [...map.values()].sort((a, b) => a.nome.localeCompare(b.nome));

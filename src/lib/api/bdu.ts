@@ -103,9 +103,9 @@ export type FactDTO = {
   membro: string | null;
   coordenacao: string | null;
   coordenacao_sigla: string | null;
-  cliente: string | null;
-  servico: string | null;
+  cargo: string | null;
   celula: string | null;
+  cliente: string | null;
 };
 
 type Periodo = { data_inicio?: string; data_fim?: string };

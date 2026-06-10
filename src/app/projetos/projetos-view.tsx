@@ -15,7 +15,6 @@ export type ProjetoVM = {
   coordSigla: string;
   cliente: string | null;
   equipe: string[];
-  servicos: string[];
   status?: "ativo" | "concluido" | "pausado";
   descricao?: string | null;
 };
@@ -146,20 +145,6 @@ function EntityDrawer({ project, onClose }: { project: ProjetoWithStatus | null;
                   {project.coord}
                 </span>
               </div>
-
-              {/* Serviços */}
-              {project.servicos && project.servicos.length > 0 && (
-                <div className="pb-4 border-b border-meta-navy-10">
-                  <div className="eyebrow-mini mb-2.5 text-xs text-meta-navy-50 font-bold tracking-wider uppercase">
-                    Serviços
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {project.servicos.map((s, idx) => (
-                      <EntityPill key={idx} type="servico" label={s} />
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {/* Equipe */}
               <div className="pb-4 border-b border-meta-navy-10">

@@ -7,16 +7,31 @@ import { Card, SectionTitle, Bar } from "@/components/dashboard/primitives";
 import { MetaSelect } from "@/components/dashboard/meta-select";
 import { Icon } from "@/components/dashboard/icon";
 
-type Fact = { projeto: string; valor: number; coord: string; cliente: string; servico: string; membro: string; celula: string };
-type Cell = { proj: Set<string>; mem: Set<string>; valor: Map<string, number>; count: number };
+type Fact = {
+  projetoId: number;
+  projeto: string;
+  valor: number;
+  membroId: number | null;
+  coord: string;
+  cliente: string;
+  cargo: string;
+  membro: string;
+  celula: string;
+  status: string;
+};
+type Cell = { proj: Set<number>; mem: Set<number>; valor: Map<number, number>; count: number };
 type ARow = { a: string; total: number; row: Map<string, Cell> };
 
+// Dimensões limitadas ao que está populado no banco (ver contexto-banco-agent):
+// projeto_servico está vazia (sem dimensão Serviço) e a célula vem do membro alocado.
 const DIMS = [
-  { id: "coord", label: "Coordenação", etype: "coord" },
-  { id: "cliente", label: "Cliente", etype: "cliente" },
-  { id: "servico", label: "Serviço", etype: "servico" },
-  { id: "celula", label: "Célula", etype: "celula" },
-  { id: "membro", label: "Membro", etype: "pessoa" },
+  { id: "coord", label: "Coordenação" },
+  { id: "projeto", label: "Projeto" },
+  { id: "membro", label: "Membro" },
+  { id: "cargo", label: "Cargo" },
+  { id: "cliente", label: "Cliente" },
+  { id: "celula", label: "Célula" },
+  { id: "status", label: "Status" },
 ] as const;
 const METRICS = [
   { id: "projetos", label: "Nº de projetos" },
@@ -25,52 +40,82 @@ const METRICS = [
   { id: "registros", label: "Nº de vínculos" },
 ] as const;
 
+function newCell(): Cell {
+  return { proj: new Set(), mem: new Set(), valor: new Map(), count: 0 };
+}
+function addFact(cell: Cell, f: Fact) {
+  cell.proj.add(f.projetoId);
+  if (f.membroId !== null) cell.mem.add(f.membroId);
+  cell.valor.set(f.projetoId, f.valor);
+  cell.count++;
+}
+
+/**
+ * Agrega fatos em matriz A × B mais células de união por linha/coluna.
+ * Identidade por id (projeto/membro): nomes duplicados não se fundem e os
+ * totais contam cada projeto uma única vez (sem somar o mesmo contrato N vezes).
+ */
 function aggregate(facts: Fact[], dimA: string, dimB: string, metric: string) {
-  const m = new Map<string, Map<string, Cell>>();
+  const matrix = new Map<string, Map<string, Cell>>();
+  const rowCells = new Map<string, Cell>();
+  const colCells = new Map<string, Cell>();
   facts.forEach((f) => {
     const a = f[dimA as keyof Fact] as string;
-    const b = dimB ? (f[dimB as keyof Fact] as string) : "_";
-    if (!m.has(a)) m.set(a, new Map());
-    const row = m.get(a)!;
-    if (!row.has(b)) row.set(b, { proj: new Set(), mem: new Set(), valor: new Map(), count: 0 });
-    const cell = row.get(b)!;
-    cell.proj.add(f.projeto);
-    cell.mem.add(f.membro);
-    cell.valor.set(f.projeto, f.valor);
-    cell.count++;
+    const b = f[dimB as keyof Fact] as string;
+    if (!matrix.has(a)) matrix.set(a, new Map());
+    const row = matrix.get(a)!;
+    if (!row.has(b)) row.set(b, newCell());
+    addFact(row.get(b)!, f);
+    if (!rowCells.has(a)) rowCells.set(a, newCell());
+    addFact(rowCells.get(a)!, f);
+    if (!colCells.has(b)) colCells.set(b, newCell());
+    addFact(colCells.get(b)!, f);
   });
   const val = (cell?: Cell) => {
     if (!cell) return 0;
     if (metric === "projetos") return cell.proj.size;
-    if (metric === "membros") return cell.mem.size - (cell.mem.has("—") ? 1 : 0);
+    if (metric === "membros") return cell.mem.size;
     if (metric === "registros") return cell.count;
     if (metric === "valor") return [...cell.valor.values()].reduce((s, v) => s + v, 0);
     return 0;
   };
-  return { m, val };
+  return { matrix, rowCells, colCells, val };
 }
 
 export function AnalisesView({ facts: raw }: { facts: FactDTO[] }) {
-  const facts = useMemo<Fact[]>(
-    () =>
-      raw.map((f) => ({
-        projeto: f.projeto,
-        valor: f.valor,
-        coord: f.coordenacao ?? "—",
-        cliente: f.cliente ?? "—",
-        servico: f.servico ?? "—",
-        membro: f.membro ?? "—",
-        celula: f.celula ?? "—",
-      })),
-    [raw],
-  );
+  const facts = useMemo<Fact[]>(() => {
+    // Há projetos distintos com o mesmo nome no banco; desambigua com o id.
+    const idsPorNome = new Map<string, Set<number>>();
+    raw.forEach((f) => {
+      if (!idsPorNome.has(f.projeto)) idsPorNome.set(f.projeto, new Set());
+      idsPorNome.get(f.projeto)!.add(f.projeto_id);
+    });
+    return raw.map((f) => ({
+      projetoId: f.projeto_id,
+      projeto: idsPorNome.get(f.projeto)!.size > 1 ? `${f.projeto} · #${f.projeto_id}` : f.projeto,
+      valor: f.valor,
+      membroId: f.membro_id,
+      coord: f.coordenacao ?? "—",
+      cliente: f.cliente ?? "—",
+      cargo: f.cargo ?? "—",
+      membro: f.membro ?? "—",
+      celula: f.celula ?? "—",
+      status: f.status ?? "—",
+    }));
+  }, [raw]);
 
   const [dimA, setDimA] = useState("coord");
-  const [dimB, setDimB] = useState("servico");
+  const [dimB, setDimB] = useState("membro");
   const [metric, setMetric] = useState("projetos");
   const [view, setView] = useState<"grafo" | "pivot" | "cards">("grafo");
   const [fCoord, setFCoord] = useState("todos");
   const [sel, setSel] = useState<{ side: "a" | "b"; i: number } | null>(null);
+
+  // Seleção é por índice; mudar dimensão/métrica/filtro reordena os nós.
+  const pick = (set: (v: string) => void) => (v: string) => {
+    set(v);
+    setSel(null);
+  };
 
   const coordOptions = useMemo(
     () => ["todos", ...[...new Set(facts.map((f) => f.coord))].filter((c) => c !== "—").sort()],
@@ -84,22 +129,15 @@ export function AnalisesView({ facts: raw }: { facts: FactDTO[] }) {
   const metricMeta = METRICS.find((x) => x.id === metric)!;
   const fmt = (v: number) => (metric === "valor" ? BRL(v) : String(v));
 
-  const { m: agg, val } = aggregate(filtered, dimA, dimB, metric);
-  const aTotals: ARow[] = [...agg.entries()]
-    .map(([a, row]) => {
-      let total = 0;
-      row.forEach((cell) => (total += val(cell)));
-      return { a, total, row };
-    })
+  const agg = aggregate(filtered, dimA, dimB, metric);
+  const val = agg.val;
+  const aTotals: ARow[] = [...agg.matrix.entries()]
+    .map(([a, row]) => ({ a, total: val(agg.rowCells.get(a)), row }))
     .filter((x) => x.a !== "—")
     .sort((x, y) => y.total - x.total);
-  const bValues = [...new Set(filtered.map((f) => f[dimB as keyof Fact] as string))].filter((b) => b !== "—");
-  const bTotals = bValues
-    .map((b) => {
-      let t = 0;
-      aTotals.forEach(({ row }) => (t += val(row.get(b))));
-      return { b, t };
-    })
+  const bTotals = [...agg.colCells.entries()]
+    .filter(([b]) => b !== "—")
+    .map(([b, cell]) => ({ b, t: val(cell) }))
     .sort((x, y) => y.t - x.t);
 
   return (
@@ -118,17 +156,17 @@ export function AnalisesView({ facts: raw }: { facts: FactDTO[] }) {
           <span className="eyebrow-mini flex items-center gap-1.5"><Icon name="sliders" size={13} />Construtor</span>
           <div className="flex flex-wrap items-center gap-2">
             <span className="badge badge--info">A</span>
-            <MetaSelect value={dimA} onChange={setDimA} options={DIMS.filter((d) => d.id !== dimB).map((d) => [d.id, d.label] as [string, string])} />
+            <MetaSelect value={dimA} onChange={pick(setDimA)} options={DIMS.filter((d) => d.id !== dimB).map((d) => [d.id, d.label] as [string, string])} />
             <span className="flowarrow"><Icon name="arrowRight" size={18} /></span>
             <span className="badge badge--neutral">B</span>
-            <MetaSelect value={dimB} onChange={setDimB} options={DIMS.filter((d) => d.id !== dimA).map((d) => [d.id, d.label] as [string, string])} />
+            <MetaSelect value={dimB} onChange={pick(setDimB)} options={DIMS.filter((d) => d.id !== dimA).map((d) => [d.id, d.label] as [string, string])} />
             <span style={{ width: 1, height: 26, background: "var(--meta-navy-10)", margin: "0 4px" }} />
             <span className="eyebrow-mini">Métrica</span>
-            <MetaSelect value={metric} onChange={setMetric} options={METRICS.map((x) => [x.id, x.label] as [string, string])} />
+            <MetaSelect value={metric} onChange={pick(setMetric)} options={METRICS.map((x) => [x.id, x.label] as [string, string])} />
           </div>
           <div className="ml-auto flex flex-wrap items-center gap-2">
             <span className="eyebrow-mini flex items-center gap-1.5"><Icon name="filter" size={12} />Filtro</span>
-            <MetaSelect value={fCoord} onChange={setFCoord} options={coordOptions.map((c) => [c, c === "todos" ? "Toda coord." : c] as [string, string])} />
+            <MetaSelect value={fCoord} onChange={pick(setFCoord)} options={coordOptions.map((c) => [c, c === "todos" ? "Toda coord." : c] as [string, string])} />
           </div>
         </div>
         <div className="mt-3.5 flex items-center gap-2 border-t border-meta-navy-10 pt-3.5">
@@ -153,11 +191,16 @@ export function AnalisesView({ facts: raw }: { facts: FactDTO[] }) {
       <SectionTitle icon="spark">Leituras que o cruzamento revela</SectionTitle>
       <div className="grid-mvp cols-3">
         {[
-          { ico: "branch", t: "Coordenação que mais entrega", d: "Cruze Coordenação × Projeto para ver onde a entrega se concentra." },
-          { ico: "projects", t: "Projeto que mais conecta", d: "Cruze Projeto × Membro para ver onde mais equipe se concentra." },
-          { ico: "building", t: "Cliente → receita", d: "Cruze Cliente × Valor para ver quem sustenta o portfólio hoje." },
+          { ico: "branch", t: "Coordenação que mais entrega", d: "Coordenação × Projeto, por nº de projetos.", a: "coord", b: "projeto", m: "projetos" },
+          { ico: "projects", t: "Projeto que mais conecta", d: "Projeto × Membro, por nº de membros.", a: "projeto", b: "membro", m: "membros" },
+          { ico: "building", t: "Cliente → receita", d: "Cliente × Projeto, por valor contratado.", a: "cliente", b: "projeto", m: "valor" },
         ].map((c, i) => (
-          <div key={i} className="card card--pad flex items-center gap-3">
+          <div
+            key={i}
+            className="card card--pad flex items-center gap-3"
+            style={{ cursor: "pointer" }}
+            onClick={() => { setDimA(c.a); setDimB(c.b); setMetric(c.m); setSel(null); }}
+          >
             <span className="kpi__ico" style={{ width: 38, height: 38 }}><Icon name={c.ico} size={18} /></span>
             <div>
               <div className="text-sm font-semibold" style={{ fontFamily: "var(--font-heading)" }}>{c.t}</div>
@@ -170,7 +213,7 @@ export function AnalisesView({ facts: raw }: { facts: FactDTO[] }) {
   );
 }
 
-type DimMeta = { id: string; label: string; etype: string | null };
+type DimMeta = { id: string; label: string };
 
 function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel }: { aTotals: ARow[]; bTotals: { b: string; t: number }[]; val: (c?: Cell) => number; dimAmeta: DimMeta; dimBmeta: DimMeta; fmt: (v: number) => string; sel: { side: "a" | "b"; i: number } | null; setSel: (s: { side: "a" | "b"; i: number } | null) => void; }) {
   const A = aTotals.slice(0, 8);
@@ -184,6 +227,7 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
   const ay = (i: number) => 40 + i * ((H - 80) / Math.max(A.length - 1, 1));
   const by = (i: number) => 40 + i * ((H - 80) / Math.max(B.length - 1, 1));
   const maxT = Math.max(...A.map((x) => x.total), 1);
+  const maxB = Math.max(...B.map((x) => x.t), 1);
   const edges: { ai: number; bi: number; v: number }[] = [];
   A.forEach((a, ai) => B.forEach((b, bi) => { const v = val(a.row.get(b.b)); if (v > 0) edges.push({ ai, bi, v }); }));
   const maxE = Math.max(...edges.map((e) => e.v), 1);
@@ -235,8 +279,7 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
             );
           })}
           {B.map((b, i) => {
-            const tot = A.reduce((s, a) => s + val(a.row.get(b.b)), 0);
-            const r = 12 + (tot / maxT) * 10;
+            const r = 12 + (b.t / maxB) * 10;
             const act = isActive("b", i);
             return (
               <g key={"b" + i} style={{ cursor: "pointer" }} opacity={act ? 1 : 0.32} onClick={() => setSel(sel && sel.side === "b" && sel.i === i ? null : { side: "b", i })}>
@@ -260,7 +303,7 @@ function PivotView({ aTotals, bTotals, val, fmt, dimAmeta, dimBmeta }: { aTotals
     <Card pad={false} className="mb-6">
       <div className="border-b border-meta-navy-10 px-[18px] py-3.5">
         <div className="card__title">Tabela cruzada — {dimAmeta.label} × {dimBmeta.label}</div>
-        <div className="card__sub">Quanto mais escura a célula, maior o valor.</div>
+        <div className="card__sub">Quanto mais escura a célula, maior o valor. Total da linha conta cada projeto uma única vez.</div>
       </div>
       <div className="overflow-x-auto">
         <table className="tbl" style={{ minWidth: 680 }}>
