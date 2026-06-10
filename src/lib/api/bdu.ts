@@ -97,6 +97,7 @@ export type FactDTO = {
   projeto_id: number;
   projeto: string;
   descricao: string | null;
+  status: string | null;
   valor: number;
   membro_id: number | null;
   membro: string | null;

@@ -199,7 +199,9 @@ export function ProjetosView({ projetos }: { projetos: ProjetoVM[] }) {
   // Mapeia os projetos recebidos para incluir o status com base na descrição real do banco
   const projetosComStatus: ProjetoWithStatus[] = projetos.map((p) => {
     let status: "ativo" | "concluido" | "pausado" = "ativo";
-    if (p.descricao) {
+    if (p.status) {
+      status = p.status;
+    } else if (p.descricao) {
       const descLower = p.descricao.toLowerCase();
       if (descLower.includes("pausado")) {
         status = "pausado";

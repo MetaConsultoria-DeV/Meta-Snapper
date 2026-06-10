@@ -33,6 +33,7 @@ export default async function ProjetosPage() {
         equipe: [],
         servicos: [],
         descricao: f.descricao,
+        status: (f.status === "finalizado" ? "concluido" : f.status) as "ativo" | "concluido" | "pausado" | undefined,
       };
       map.set(f.projeto_id, p);
     }
