@@ -64,5 +64,7 @@ export function rangePeriodo(p: Periodo, hoje = new Date()): PeriodoRange {
       return { data_inicio: `${ano}-01-01`, data_fim: `${ano}-12-31` };
     case "custom":
       return { data_inicio: p.de, data_fim: p.ate };
+    default:
+      return {}; // Fallback para período inválido
   }
 }

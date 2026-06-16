@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { PanelLeft, Menu, Search, Calendar, Bell, ChevronRight } from "lucide-react";
 import { ROUTE_CRUMB } from "@/lib/nav";
@@ -35,6 +35,13 @@ export function TopBar({ onToggleSidebar, onToggleDrawer, periodo, onPeriodoChan
   const [de, setDe] = useState(periodo.key === "custom" ? (periodo.de ?? "") : "");
   const [ate, setAte] = useState(periodo.key === "custom" ? (periodo.ate ?? "") : "");
 
+  useEffect(() => {
+    if (periodo.key === "custom") {
+      setDe(periodo.de ?? "");
+      setAte(periodo.ate ?? "");
+    }
+  }, [periodo.de, periodo.ate, periodo.key]);
+
   const chips: { key: PeriodoKey; label: string }[] = [
     { key: "30d", label: "30 dias" },
     { key: "sem1", label: labels.sem1 },
@@ -44,8 +51,24 @@ export function TopBar({ onToggleSidebar, onToggleDrawer, periodo, onPeriodoChan
   ];
 
   const aplicarCustom = () => {
-    if (!de && !ate) return;
-    onPeriodoChange({ key: "custom", de: de || undefined, ate: ate || undefined });
+    // Validar datas
+    if (!de || !ate) {
+      alert("Informe ambas as datas (de e até)");
+      return;
+    }
+
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(de) || !dateRegex.test(ate)) {
+      alert("Formato de data inválido. Use YYYY-MM-DD");
+      return;
+    }
+
+    if (de > ate) {
+      alert("Data inicial não pode ser maior que data final");
+      return;
+    }
+
+    onPeriodoChange({ key: "custom", de, ate });
     setCalAberto(false);
   };
 

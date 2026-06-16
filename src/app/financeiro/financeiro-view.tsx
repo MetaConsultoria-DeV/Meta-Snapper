@@ -51,7 +51,7 @@ export function FinanceiroView({
         description="Leitura integrada entre contratos, clientes e projetos de um lado, e pagamentos, parcelas e transações do outro. De onde vêm e para onde vão os recursos."
       />
 
-      <ResponsiveGrid cols={{ mobile: 1, tablet: 2, desktop: 4 }} gap="md" className="mb-3.5">
+      <ResponsiveGrid cols="1-2-4" gap="md" className="mb-3.5">
         <Kpi icon="doc" label="Receita contratada" value={BRL(receita)} note={`${contratos.length} contratos`} />
         <Kpi icon="arrowDown" label="Entradas" value={BRL(totalEntradas)} note="no período" />
         <Kpi icon="arrowUp" label="Saídas" value={BRL(totalSaidas)} note="no período" />
@@ -120,7 +120,7 @@ export function FinanceiroView({
       </Card>
 
       <SectionTitle icon="finance">Movimentação financeira</SectionTitle>
-      <ResponsiveGrid cols={{ mobile: 1, tablet: 1, desktop: 2 }} gap="md" className="mb-2">
+      <ResponsiveGrid cols="1-1-2" gap="md" className="mb-2">
         <Card title="Entradas vs. saídas" sub="Fluxo de caixa mensal">
           <div className="flex items-end gap-[18px] pt-2 overflow-x-auto" style={{ height: 170 }}>
             {fluxo.map((f, i) => (
@@ -160,7 +160,7 @@ export function FinanceiroView({
         </Card>
       </ResponsiveGrid>
 
-      <ResponsiveGrid cols={{ mobile: 1, tablet: 2, desktop: 3 }} gap="md" className="mb-[18px] mt-6">
+      <ResponsiveGrid cols="1-2-3" gap="md" className="mb-[18px] mt-6">
         {contas.map((c, i) => (
           <div key={i} className="card card--pad">
             <div className="flex items-center gap-3">

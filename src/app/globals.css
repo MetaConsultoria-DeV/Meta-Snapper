@@ -1229,7 +1229,7 @@
   }
 
   /* Touch-friendly targets on mobile */
-  @screen max-md {
+  @media (max-width: 767px) {
     button,
     a,
     [role='button'] {
@@ -1239,14 +1239,14 @@
   }
 
   /* Update col- grid classes for responsive behavior */
-  @screen md {
+  @media (min-width: 768px) {
     .cols-4,
     .cols-3 {
       grid-template-columns: repeat(2, 1fr) !important;
     }
   }
 
-  @screen max-md {
+  @media (max-width: 767px) {
     .cols-2,
     .cols-3,
     .cols-4 {

@@ -128,7 +128,7 @@ export function ComercialView({
       </div>
 
       {/* HEADER: FUNIL ATIVO + TERMINAIS */}
-      <ResponsiveGrid cols={{ mobile: 4, tablet: 8, desktop: 12 }} gap="md" className="mb-6 items-start">
+      <ResponsiveGrid cols="4-8-12" gap="md" className="mb-6 items-start">
         {/* Funnel card - 4/8 on mobile, 6 on tablet, 7 on desktop */}
         <div className="col-span-4 md:col-span-4 lg:col-span-7 overflow-hidden rounded-[18px] text-white" style={{ background: "var(--meta-navy)" }}>
           <div className="relative px-4 md:px-6 py-4 md:py-6">
@@ -201,7 +201,7 @@ export function ComercialView({
 
       {/* motivos de perda */}
       {motivosPerda.length > 0 && (
-        <ResponsiveGrid cols={{ mobile: 4, tablet: 8, desktop: 12 }} gap="md" className="mb-6">
+        <ResponsiveGrid cols="4-8-12" gap="md" className="mb-6">
           <div className="col-span-4 md:col-span-4 lg:col-span-6">
             <Card title="Motivos de perda" sub="Por que oportunidades não avançam (histórico)">
               <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-5">
@@ -267,7 +267,7 @@ export function ComercialView({
           {oportunidades.length > 200 && <div className="muted px-4 py-2 text-xs md:text-[12px] text-meta-navy-50">Exibindo 200 de {oportunidades.length} no período.</div>}
         </Card>
       ) : (
-        <ResponsiveGrid cols={{ mobile: 4, tablet: 8, desktop: 12 }} gap="md">
+        <ResponsiveGrid cols="4-8-12" gap="md">
           {clientes.slice(0, 30).map((c) => (
             <div key={c.id} className="col-span-4 md:col-span-4 lg:col-span-4 card card--pad flex flex-col gap-3">
               <div className="flex items-center gap-2 md:gap-3">

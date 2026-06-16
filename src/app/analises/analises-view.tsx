@@ -195,7 +195,7 @@ export function AnalisesView({ facts: raw }: { facts: FactDTO[] }) {
       {view === "cards" && <CompareView aTotals={aTotals} val={val} fmt={fmt} dimBmeta={dimBmeta} metricMeta={metricMeta} />}
 
       <SectionTitle icon="spark">Leituras que o cruzamento revela</SectionTitle>
-      <ResponsiveGrid cols={{ mobile: 4, tablet: 8, desktop: 12 }} gap="md">
+      <ResponsiveGrid cols="4-8-12" gap="md">
         {[
           { ico: "branch", t: "Coordenação que mais entrega", d: "Coordenação × Projeto, por nº de projetos.", a: "coord", b: "projeto", m: "projetos" },
           { ico: "projects", t: "Projeto que mais conecta", d: "Projeto × Membro, por nº de membros.", a: "projeto", b: "membro", m: "membros" },

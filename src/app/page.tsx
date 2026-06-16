@@ -24,12 +24,15 @@ export default async function HomePage() {
   let celulas: Awaited<ReturnType<typeof bduApi.celulas>>;
   try {
     [o, celulas] = await Promise.all([bduApi.overview(range), bduApi.celulas()]);
-  } catch {
+  } catch (error) {
+    const description = range?.data_inicio || range?.data_fim
+      ? "Verifique se o período selecionado é válido. Tente selecionar outro período no seletor acima."
+      : "O backend BDU não respondeu. Verifique a API e tente novamente.";
     return (
       <div className="mx-auto max-w-[1480px]">
         <ErrorState
           title="Não foi possível carregar a visão geral"
-          description="O backend BDU não respondeu. Verifique a API e tente novamente."
+          description={description}
         />
       </div>
     );
