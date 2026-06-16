@@ -1,4 +1,3 @@
-// src/components/ui/responsive-grid.tsx
 import { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -13,12 +12,6 @@ interface ResponsiveGridProps {
   gap?: 'sm' | 'md' | 'lg';
 }
 
-/**
- * ResponsiveGrid adapts column count by breakpoint:
- * - Mobile (<768px): 4 columns (or custom)
- * - Tablet (768-1023px): 8 columns (or custom)
- * - Desktop (1024px+): 12 columns (or custom)
- */
 export function ResponsiveGrid({
   children,
   className,

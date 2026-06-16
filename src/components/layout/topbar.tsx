@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import { usePathname } from "next/navigation";
-import { PanelLeft, Search, Calendar, Bell, ChevronRight } from "lucide-react";
+import { PanelLeft, Menu, Search, Calendar, Bell, ChevronRight } from "lucide-react";
 import { ROUTE_CRUMB } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 import { periodoLabels, type Periodo, type PeriodoKey } from "@/lib/periodo";
 
 type TopBarProps = {
   onToggleSidebar: () => void;
+  onToggleDrawer?: () => void;
   periodo: Periodo;
   onPeriodoChange: (p: Periodo) => void;
 };
@@ -24,7 +25,7 @@ const SEM_RECORTE: Record<string, string> = {
 
 const fmtBR = (s?: string) => (s ? s.split("-").reverse().slice(0, 2).join("/") : "…");
 
-export function TopBar({ onToggleSidebar, periodo, onPeriodoChange }: TopBarProps) {
+export function TopBar({ onToggleSidebar, onToggleDrawer, periodo, onPeriodoChange }: TopBarProps) {
   const pathname = usePathname();
   const crumb = ROUTE_CRUMB[pathname] ?? "BDU";
   const labels = periodoLabels();
@@ -49,11 +50,21 @@ export function TopBar({ onToggleSidebar, periodo, onPeriodoChange }: TopBarProp
   };
 
   return (
-    <header className="flex h-16 items-center gap-4 border-b border-border bg-card px-5">
+    <header className="flex h-16 items-center gap-4 border-b border-border bg-card px-4 md:px-5">
+      {/* Mobile hamburger */}
+      <button
+        onClick={onToggleDrawer}
+        title="Abrir navegação"
+        className="md:hidden grid size-9 place-items-center rounded-lg text-muted-foreground hover:bg-secondary"
+      >
+        <Menu size={18} />
+      </button>
+
+      {/* Desktop sidebar toggle */}
       <button
         onClick={onToggleSidebar}
         title="Recolher menu"
-        className="grid size-9 place-items-center rounded-lg text-muted-foreground hover:bg-secondary"
+        className="hidden md:grid size-9 place-items-center rounded-lg text-muted-foreground hover:bg-secondary"
       >
         <PanelLeft size={18} />
       </button>

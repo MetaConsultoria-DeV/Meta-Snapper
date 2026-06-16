@@ -13,7 +13,8 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
     <aside
       className={cn(
         "flex h-full flex-col bg-sidebar text-sidebar-foreground transition-[width] duration-300",
-        collapsed ? "w-[76px]" : "w-[260px]",
+        "hidden md:flex",
+        collapsed ? "md:w-[76px]" : "md:w-[260px]",
       )}
     >
       <div className="flex h-16 items-center gap-2 px-5">
@@ -51,7 +52,7 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
                   href={item.href}
                   title={item.label}
                   className={cn(
-                    "mb-0.5 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                    "mb-0.5 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors min-h-11",
                     active
                       ? "bg-sidebar-accent text-sidebar-accent-foreground"
                       : "text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",

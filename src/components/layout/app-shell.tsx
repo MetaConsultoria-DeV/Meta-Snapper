@@ -4,6 +4,7 @@ import { useMemo, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { Sidebar } from "./sidebar";
 import { TopBar } from "./topbar";
+import { Drawer } from "./drawer";
 import {
   PERIODO_COOKIE, parsePeriodo, serializePeriodo, type Periodo,
 } from "@/lib/periodo";
@@ -27,6 +28,7 @@ const lerCookie = () =>
  */
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const router = useRouter();
 
   const raw = useSyncExternalStore(assinar, lerCookie, () => "");
@@ -42,13 +44,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar collapsed={collapsed} />
+      <Drawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)}>
+        <Sidebar collapsed={false} />
+      </Drawer>
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar
           onToggleSidebar={() => setCollapsed((v) => !v)}
+          onToggleDrawer={() => setDrawerOpen((v) => !v)}
           periodo={periodo}
           onPeriodoChange={mudarPeriodo}
         />
-        <main className="flex-1 overflow-y-auto overflow-x-hidden bg-background p-6">{children}</main>
+        <main className="flex-1 overflow-y-auto overflow-x-hidden bg-background p-4 md:p-6">{children}</main>
       </div>
     </div>
   );
