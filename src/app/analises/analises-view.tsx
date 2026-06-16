@@ -6,6 +6,8 @@ import type { FactDTO } from "@/lib/api/bdu";
 import { Card, SectionTitle, Bar } from "@/components/dashboard/primitives";
 import { MetaSelect } from "@/components/dashboard/meta-select";
 import { Icon } from "@/components/dashboard/icon";
+import { ResponsiveGrid } from "@/components/ui/responsive-grid";
+import { AdaptiveTable } from "@/components/ui/adaptive-table";
 
 type Fact = {
   projetoId: number;
@@ -143,40 +145,44 @@ export function AnalisesView({ facts: raw }: { facts: FactDTO[] }) {
   return (
     <div className="mx-auto max-w-[1480px]">
       <header className="mb-6">
-        <p className="eyebrow text-meta-blue">Inteligência · BDU</p>
-        <h1 className="mt-1 text-3xl font-bold text-foreground">Análises Transversais</h1>
-        <p className="mt-2 max-w-2xl leading-relaxed text-muted-foreground">
+        <p className="eyebrow text-meta-blue text-xs md:text-sm">Inteligência · BDU</p>
+        <h1 className="mt-1 text-2xl md:text-3xl font-bold text-foreground">Análises Transversais</h1>
+        <p className="mt-2 max-w-2xl text-sm md:text-base leading-relaxed text-muted-foreground">
           O espaço para cruzar livremente as dimensões da empresa. Escolha o que conectar, aplique filtros e
           leia a relação como grafo, tabela cruzada ou comparação. Sem dashboards fixos.
         </p>
       </header>
 
-      <div className="card card--pad mb-[18px]" style={{ background: "linear-gradient(180deg,#fff,#fbfcff)" }}>
-        <div className="flex flex-wrap items-center gap-3.5">
-          <span className="eyebrow-mini flex items-center gap-1.5"><Icon name="sliders" size={13} />Construtor</span>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="badge badge--info">A</span>
-            <MetaSelect value={dimA} onChange={pick(setDimA)} options={DIMS.filter((d) => d.id !== dimB).map((d) => [d.id, d.label] as [string, string])} />
-            <span className="flowarrow"><Icon name="arrowRight" size={18} /></span>
-            <span className="badge badge--neutral">B</span>
-            <MetaSelect value={dimB} onChange={pick(setDimB)} options={DIMS.filter((d) => d.id !== dimA).map((d) => [d.id, d.label] as [string, string])} />
-            <span style={{ width: 1, height: 26, background: "var(--meta-navy-10)", margin: "0 4px" }} />
-            <span className="eyebrow-mini">Métrica</span>
-            <MetaSelect value={metric} onChange={pick(setMetric)} options={METRICS.map((x) => [x.id, x.label] as [string, string])} />
+      <div className="card card--pad mb-4 md:mb-6" style={{ background: "linear-gradient(180deg,#fff,#fbfcff)" }}>
+        <div className="flex flex-col gap-4 md:gap-0 md:flex-wrap md:items-center md:justify-between">
+          <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center">
+            <span className="eyebrow-mini flex items-center gap-1.5 text-xs md:text-sm"><Icon name="sliders" size={13} />Construtor</span>
+            <div className="flex flex-wrap items-center gap-2 md:gap-1">
+              <span className="badge badge--info text-xs">A</span>
+              <MetaSelect value={dimA} onChange={pick(setDimA)} options={DIMS.filter((d) => d.id !== dimB).map((d) => [d.id, d.label] as [string, string])} />
+              <span className="flowarrow hidden md:inline"><Icon name="arrowRight" size={18} /></span>
+              <span className="badge badge--neutral text-xs">B</span>
+              <MetaSelect value={dimB} onChange={pick(setDimB)} options={DIMS.filter((d) => d.id !== dimA).map((d) => [d.id, d.label] as [string, string])} />
+              <span style={{ width: 1, height: 26, background: "var(--meta-navy-10)", margin: "0 4px" }} className="hidden md:inline-block" />
+              <span className="eyebrow-mini text-xs md:text-sm">Métrica</span>
+              <MetaSelect value={metric} onChange={pick(setMetric)} options={METRICS.map((x) => [x.id, x.label] as [string, string])} />
+            </div>
           </div>
-          <div className="ml-auto flex flex-wrap items-center gap-2">
-            <span className="eyebrow-mini flex items-center gap-1.5"><Icon name="filter" size={12} />Filtro</span>
+          <div className="flex flex-wrap items-center gap-2 md:ml-auto">
+            <span className="eyebrow-mini flex items-center gap-1.5 text-xs md:text-sm"><Icon name="filter" size={12} />Filtro</span>
             <MetaSelect value={fCoord} onChange={pick(setFCoord)} options={coordOptions.map((c) => [c, c === "todos" ? "Toda coord." : c] as [string, string])} />
           </div>
         </div>
-        <div className="mt-3.5 flex items-center gap-2 border-t border-meta-navy-10 pt-3.5">
-          <span className="text-[13px] text-meta-navy-50">Lendo</span>
-          <span className="epill e-coord" style={{ cursor: "default" }}><span className="epill__dot" />{dimAmeta.label}</span>
-          <Icon name="arrowRight" size={14} className="text-meta-navy-30" />
-          <span className="epill e-servico" style={{ cursor: "default" }}><span className="epill__dot" />{dimBmeta.label}</span>
-          <span className="text-[13px] text-meta-navy-50">por</span>
-          <span className="badge badge--info">{metricMeta.label}</span>
-          <div className="seg ml-auto">
+        <div className="mt-4 md:mt-3.5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-2 border-t border-meta-navy-10 pt-4 md:pt-3.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs md:text-[13px] text-meta-navy-50">Lendo</span>
+            <span className="epill e-coord" style={{ cursor: "default" }}><span className="epill__dot" /><span className="text-xs md:text-sm">{dimAmeta.label}</span></span>
+            <Icon name="arrowRight" size={14} className="text-meta-navy-30" />
+            <span className="epill e-servico" style={{ cursor: "default" }}><span className="epill__dot" /><span className="text-xs md:text-sm">{dimBmeta.label}</span></span>
+            <span className="text-xs md:text-[13px] text-meta-navy-50">por</span>
+            <span className="badge badge--info text-xs">{metricMeta.label}</span>
+          </div>
+          <div className="seg">
             <div className={"seg__opt" + (view === "grafo" ? " active" : "")} onClick={() => setView("grafo")}><Icon name="network" size={15} />Grafo</div>
             <div className={"seg__opt" + (view === "pivot" ? " active" : "")} onClick={() => setView("pivot")}><Icon name="table" size={15} />Pivot</div>
             <div className={"seg__opt" + (view === "cards" ? " active" : "")} onClick={() => setView("cards")}><Icon name="grid" size={15} />Comparar</div>
@@ -189,7 +195,7 @@ export function AnalisesView({ facts: raw }: { facts: FactDTO[] }) {
       {view === "cards" && <CompareView aTotals={aTotals} val={val} fmt={fmt} dimBmeta={dimBmeta} metricMeta={metricMeta} />}
 
       <SectionTitle icon="spark">Leituras que o cruzamento revela</SectionTitle>
-      <div className="grid-mvp cols-3">
+      <ResponsiveGrid cols={{ mobile: 4, tablet: 8, desktop: 12 }} gap="md">
         {[
           { ico: "branch", t: "Coordenação que mais entrega", d: "Coordenação × Projeto, por nº de projetos.", a: "coord", b: "projeto", m: "projetos" },
           { ico: "projects", t: "Projeto que mais conecta", d: "Projeto × Membro, por nº de membros.", a: "projeto", b: "membro", m: "membros" },
@@ -197,18 +203,18 @@ export function AnalisesView({ facts: raw }: { facts: FactDTO[] }) {
         ].map((c, i) => (
           <div
             key={i}
-            className="card card--pad flex items-center gap-3"
+            className="col-span-4 md:col-span-4 lg:col-span-4 card card--pad flex flex-col sm:flex-row sm:items-center gap-3"
             style={{ cursor: "pointer" }}
             onClick={() => { setDimA(c.a); setDimB(c.b); setMetric(c.m); setSel(null); }}
           >
-            <span className="kpi__ico" style={{ width: 38, height: 38 }}><Icon name={c.ico} size={18} /></span>
-            <div>
-              <div className="text-sm font-semibold" style={{ fontFamily: "var(--font-heading)" }}>{c.t}</div>
-              <div className="muted mt-0.5 text-[12.5px] leading-snug text-meta-navy-50">{c.d}</div>
+            <span className="kpi__ico shrink-0" style={{ width: 38, height: 38 }}><Icon name={c.ico} size={18} /></span>
+            <div className="min-w-0">
+              <div className="text-xs sm:text-sm font-semibold" style={{ fontFamily: "var(--font-heading)" }}>{c.t}</div>
+              <div className="muted mt-0.5 text-[11px] sm:text-[12.5px] leading-snug text-meta-navy-50">{c.d}</div>
             </div>
           </div>
         ))}
-      </div>
+      </ResponsiveGrid>
     </div>
   );
 }
@@ -301,37 +307,35 @@ function PivotView({ aTotals, bTotals, val, fmt, dimAmeta, dimBmeta }: { aTotals
   const max = Math.max(...allVals, 1);
   return (
     <Card pad={false} className="mb-6">
-      <div className="border-b border-meta-navy-10 px-[18px] py-3.5">
-        <div className="card__title">Tabela cruzada — {dimAmeta.label} × {dimBmeta.label}</div>
-        <div className="card__sub">Quanto mais escura a célula, maior o valor. Total da linha conta cada projeto uma única vez.</div>
+      <div className="border-b border-meta-navy-10 px-4 md:px-[18px] py-3 md:py-3.5">
+        <div className="card__title text-sm md:text-base">Tabela cruzada — {dimAmeta.label} × {dimBmeta.label}</div>
+        <div className="card__sub text-xs md:text-sm">Quanto mais escura a célula, maior o valor. Total da linha conta cada projeto uma única vez.</div>
       </div>
-      <div className="overflow-x-auto">
-        <table className="tbl" style={{ minWidth: 680 }}>
-          <thead>
-            <tr>
-              <th style={{ minWidth: 160 }}>{dimAmeta.label}</th>
-              {B.map((b) => <th key={b.b} className="text-center">{b.b.length > 14 ? b.b.slice(0, 13) + "…" : b.b}</th>)}
-              <th className="num">Total</th>
+      <AdaptiveTable>
+        <thead>
+          <tr>
+            <th style={{ minWidth: 120 }} className="text-xs md:text-sm">{dimAmeta.label}</th>
+            {B.map((b) => <th key={b.b} className="text-center text-xs md:text-sm min-w-12">{b.b.length > 14 ? b.b.slice(0, 13) + "…" : b.b}</th>)}
+            <th className="num text-xs md:text-sm min-w-16">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {aTotals.map((a) => (
+            <tr key={a.a}>
+              <td className="font-semibold text-xs md:text-sm" style={{ fontFamily: "var(--font-heading)" }}>{a.a}</td>
+              {B.map((b) => {
+                const v = val(a.row.get(b.b));
+                return (
+                  <td key={b.b} className="text-center p-1 md:p-1.5">
+                    <div className="mx-auto grid place-items-center text-xs font-bold p-1 md:p-1.5 rounded" style={{ minWidth: 36, minHeight: 28, fontFamily: "var(--font-heading)", background: v ? `rgba(0,103,255,${0.07 + (0.55 * v) / max})` : "var(--meta-paper)", color: v > max * 0.55 ? "#fff" : "var(--meta-navy)" }}>{v ? fmt(v).replace("R$ ", "") : ""}</div>
+                  </td>
+                );
+              })}
+              <td className="num text-xs md:text-sm whitespace-nowrap">{fmt(a.total)}</td>
             </tr>
-          </thead>
-          <tbody>
-            {aTotals.map((a) => (
-              <tr key={a.a}>
-                <td className="font-semibold" style={{ fontFamily: "var(--font-heading)" }}>{a.a}</td>
-                {B.map((b) => {
-                  const v = val(a.row.get(b.b));
-                  return (
-                    <td key={b.b} className="text-center" style={{ padding: 6 }}>
-                      <div className="mx-auto grid place-items-center text-xs font-bold" style={{ minWidth: 44, height: 30, borderRadius: 7, fontFamily: "var(--font-heading)", background: v ? `rgba(0,103,255,${0.07 + (0.55 * v) / max})` : "var(--meta-paper)", color: v > max * 0.55 ? "#fff" : "var(--meta-navy)" }}>{v ? fmt(v).replace("R$ ", "") : ""}</div>
-                    </td>
-                  );
-                })}
-                <td className="num">{fmt(a.total)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          ))}
+        </tbody>
+      </AdaptiveTable>
     </Card>
   );
 }
