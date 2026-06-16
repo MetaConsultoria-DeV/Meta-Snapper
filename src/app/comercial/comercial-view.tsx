@@ -112,7 +112,7 @@ export function ComercialView({
                 key={p.key}
                 href={`/comercial?periodo=${p.key}`}
                 className={cn(
-                  "border-r border-meta-navy-10 px-2.5 md:px-3 py-1.5 text-xs md:text-[13px] font-medium last:border-r-0 transition-colors whitespace-nowrap",
+                  "border-r border-meta-navy-10 px-2.5 md:px-3 py-3 text-xs md:text-[13px] font-medium last:border-r-0 transition-colors whitespace-nowrap min-h-11",
                   periodo === p.key ? "bg-meta-navy text-white" : "text-meta-navy-50 hover:bg-meta-paper",
                 )}
                 style={{ fontFamily: "var(--font-heading)" }}
