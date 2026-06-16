@@ -1214,3 +1214,43 @@
   background: var(--meta-paper);
   transform: translateX(4px);
 }
+/* ============================================================
+   Responsive Utilities (Tailwind Breakpoints)
+   ============================================================ */
+@layer utilities {
+  /* Prevent horizontal scroll */
+  body {
+    overflow-x: hidden;
+  }
+
+  /* Stable scrollbar gutter to prevent layout shift */
+  html {
+    scrollbar-gutter: stable;
+  }
+
+  /* Touch-friendly targets on mobile */
+  @screen max-md {
+    button,
+    a,
+    [role='button'] {
+      min-height: 2.75rem; /* 44px */
+      min-width: 2.75rem;
+    }
+  }
+
+  /* Update col- grid classes for responsive behavior */
+  @screen md {
+    .cols-4,
+    .cols-3 {
+      grid-template-columns: repeat(2, 1fr) !important;
+    }
+  }
+
+  @screen max-md {
+    .cols-2,
+    .cols-3,
+    .cols-4 {
+      grid-template-columns: 1fr !important;
+    }
+  }
+}
