@@ -299,7 +299,7 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
     setIsMounted(true);
   }, []);
 
-  const W = 1000;
+  const W = 1300;
   const H = 600;
 
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -367,7 +367,7 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
           label: a.a,
           side: "a",
           value: a.total,
-          x: existing ? existing.x : 250 + (Math.random() - 0.5) * 20,
+          x: existing ? existing.x : 360 + (Math.random() - 0.5) * 20,
           y: existing
             ? existing.y
             : 80 + i * ((H - 160) / Math.max(A.length - 1, 1 || 1)),
@@ -389,7 +389,7 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
           label: b.b,
           side: "b",
           value: b.t,
-          x: existing ? existing.x : 750 + (Math.random() - 0.5) * 20,
+          x: existing ? existing.x : 940 + (Math.random() - 0.5) * 20,
           y: existing
             ? existing.y
             : 80 + i * ((H - 160) / Math.max(B.length - 1, 1 || 1)),
@@ -458,7 +458,7 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
           const dist = Math.sqrt(distSq);
 
           // Repulsion strength (aumentada para dar mais espaçamento)
-          const strength = (n1.r + n2.r) * 85 * alpha;
+          const strength = (n1.r + n2.r) * 135 * alpha;
           const force = strength / distSq;
           const fx = (dx / dist) * force;
           const fy = (dy / dist) * force;
@@ -485,7 +485,7 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
         const dist = Math.sqrt(dx * dx + dy * dy) || 1;
 
         // Ideal distance between connected nodes (aumentada para dar mais espaçamento)
-        const desiredDist = 190;
+        const desiredDist = 240;
         const k = 0.045 * alpha;
         const force = (dist - desiredDist) * k;
         const fx = (dx / dist) * force;
@@ -518,8 +518,8 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
         // Pull to center (suavizado para espalhar mais os nós)
         const dx = cx - node.x;
         const dy = cy - node.y;
-        node.vx += dx * 0.0025 * alpha;
-        node.vy += dy * 0.0025 * alpha;
+        node.vx += dx * 0.0016 * alpha;
+        node.vy += dy * 0.0016 * alpha;
 
         // Apply velocity and damping
         node.x += node.vx;
