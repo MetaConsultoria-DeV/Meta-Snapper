@@ -458,7 +458,7 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
           const dist = Math.sqrt(distSq);
 
           // Repulsion strength (aumentada para dar mais espaçamento)
-          const strength = (n1.r + n2.r) * 135 * alpha;
+          const strength = (n1.r + n2.r) * 100 * alpha;
           const force = strength / distSq;
           const fx = (dx / dist) * force;
           const fy = (dy / dist) * force;
@@ -485,7 +485,7 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
         const dist = Math.sqrt(dx * dx + dy * dy) || 1;
 
         // Ideal distance between connected nodes (aumentada para dar mais espaçamento)
-        const desiredDist = 240;
+        const desiredDist = 215;
         const k = 0.045 * alpha;
         const force = (dist - desiredDist) * k;
         const fx = (dx / dist) * force;
@@ -518,8 +518,8 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
         // Pull to center (suavizado para espalhar mais os nós)
         const dx = cx - node.x;
         const dy = cy - node.y;
-        node.vx += dx * 0.0016 * alpha;
-        node.vy += dy * 0.0016 * alpha;
+        node.vx += dx * 0.0024 * alpha;
+        node.vy += dy * 0.0024 * alpha;
 
         // Apply velocity and damping
         node.x += node.vx;
