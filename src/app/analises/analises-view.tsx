@@ -353,57 +353,57 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
   const [nodes, setNodes] = useState<GraphNode[]>([]);
 
   useEffect(() => {
-    setNodes((prevNodes) => {
-      const nextNodes: GraphNode[] = [];
-      const nodeMap = new Map(prevNodes.map((n) => [n.id, n]));
+    // Reconstrói a partir da ref (posições atuais), preservando quem permanece.
+    const prevNodes = nodesRef.current;
+    const nodeMap = new Map(prevNodes.map((n) => [n.id, n]));
+    const nextNodes: GraphNode[] = [];
 
-      // A nodes (left)
-      A.forEach((a, i) => {
-        const id = `a-${a.a}`;
-        const existing = nodeMap.get(id);
-        const radius = 14 + (a.total / maxT) * 12;
-        nextNodes.push({
-          id,
-          label: a.a,
-          side: "a",
-          value: a.total,
-          x: existing ? existing.x : 360 + (Math.random() - 0.5) * 20,
-          y: existing
-            ? existing.y
-            : 80 + i * ((H - 160) / Math.max(A.length - 1, 1 || 1)),
-          vx: existing ? existing.vx : 0,
-          vy: existing ? existing.vy : 0,
-          r: radius,
-          fx: existing ? existing.fx : null,
-          fy: existing ? existing.fy : null,
-        });
+    // A nodes (left)
+    A.forEach((a, i) => {
+      const id = `a-${a.a}`;
+      const existing = nodeMap.get(id);
+      const radius = 14 + (a.total / maxT) * 12;
+      nextNodes.push({
+        id,
+        label: a.a,
+        side: "a",
+        value: a.total,
+        x: existing ? existing.x : 360 + (Math.random() - 0.5) * 20,
+        y: existing ? existing.y : 80 + i * ((H - 160) / Math.max(A.length - 1, 1)),
+        vx: existing ? existing.vx : 0,
+        vy: existing ? existing.vy : 0,
+        r: radius,
+        fx: existing ? existing.fx : null,
+        fy: existing ? existing.fy : null,
       });
-
-      // B nodes (right)
-      B.forEach((b, i) => {
-        const id = `b-${b.b}`;
-        const existing = nodeMap.get(id);
-        const radius = 12 + (b.t / maxB) * 10;
-        nextNodes.push({
-          id,
-          label: b.b,
-          side: "b",
-          value: b.t,
-          x: existing ? existing.x : 940 + (Math.random() - 0.5) * 20,
-          y: existing
-            ? existing.y
-            : 80 + i * ((H - 160) / Math.max(B.length - 1, 1 || 1)),
-          vx: existing ? existing.vx : 0,
-          vy: existing ? existing.vy : 0,
-          r: radius,
-          fx: existing ? existing.fx : null,
-          fy: existing ? existing.fy : null,
-        });
-      });
-
-      return nextNodes;
     });
-    
+
+    // B nodes (right)
+    B.forEach((b, i) => {
+      const id = `b-${b.b}`;
+      const existing = nodeMap.get(id);
+      const radius = 12 + (b.t / maxB) * 10;
+      nextNodes.push({
+        id,
+        label: b.b,
+        side: "b",
+        value: b.t,
+        x: existing ? existing.x : 940 + (Math.random() - 0.5) * 20,
+        y: existing ? existing.y : 80 + i * ((H - 160) / Math.max(B.length - 1, 1)),
+        vx: existing ? existing.vx : 0,
+        vy: existing ? existing.vy : 0,
+        r: radius,
+        fx: existing ? existing.fx : null,
+        fy: existing ? existing.fy : null,
+      });
+    });
+
+    // Sincroniza a ref ANTES de a física reiniciar — senão o tick sobrescreve
+    // estes nós novos com a referência antiga (bug: o grafo não reconstruía ao
+    // trocar dimensão/métrica/limite e as arestas ficavam órfãs).
+    nodesRef.current = nextNodes;
+    setNodes(nextNodes);
+
     // Reheat simulation on data changes
     alphaRef.current = 1;
     setSimTrigger((prev) => prev + 1);
