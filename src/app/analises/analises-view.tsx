@@ -250,6 +250,11 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [simTrigger, setSimTrigger] = useState(0);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const W = 1000;
   const H = 600;
@@ -667,6 +672,22 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
 
   // Shorten label for cleaner view
   const shorten = (s: string) => (s.length > 20 ? s.slice(0, 18) + "…" : s);
+
+  if (!isMounted) {
+    return (
+      <Card pad={false} className="relative mb-6 overflow-hidden select-none">
+        <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-meta-navy-10 px-[18px] py-3 gap-3">
+          <div>
+            <div className="card__title">Grafo de relações</div>
+            <div className="card__sub">Carregando visualização interativa...</div>
+          </div>
+        </div>
+        <div className="grid h-[600px] place-items-center bg-slate-50/5">
+          <span className="text-meta-navy-30 text-xs font-semibold animate-pulse">Carregando mapa interativo...</span>
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <Card pad={false} className="relative mb-6 overflow-hidden select-none">
