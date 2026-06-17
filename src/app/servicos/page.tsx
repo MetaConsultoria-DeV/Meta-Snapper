@@ -54,6 +54,11 @@ export default async function ServicosPage() {
   const maxOpp = Math.max(...coords.map((c) => c.oportunidades), 1);
   const topCoord = coords[0];
 
+  // Cards ordenados pela demanda da coordenação (maior primeiro), para leitura consistente.
+  const gruposOrdenados = [...grupos.values()].sort(
+    (a, b) => (b.servicos[0]?.oportunidades ?? 0) - (a.servicos[0]?.oportunidades ?? 0),
+  );
+
   return (
     <div className="mx-auto max-w-[1480px]">
       <PageHeader
@@ -75,7 +80,7 @@ export default async function ServicosPage() {
 
       <SectionTitle icon="branch">Carta de serviços por coordenação</SectionTitle>
       <div className="grid-mvp cols-3 mb-2">
-        {[...grupos.values()].map((co) => {
+        {gruposOrdenados.map((co) => {
           const opp = co.servicos[0]?.oportunidades ?? 0;
           return (
             <div key={co.sigla} className="card overflow-hidden">
@@ -103,60 +108,47 @@ export default async function ServicosPage() {
         })}
       </div>
 
-      <div className="grid-mvp mt-6 items-start" style={{ gridTemplateColumns: "1fr 1fr" }}>
-        <Card title="Demanda por coordenação" sub="Oportunidades com coordenação identificada (Pipefy)">
-          <div className="mt-0.5 flex flex-col gap-3">
-            {coords.map((c) => (
-              <div key={c.sigla} className="flex items-center gap-3">
-                <span className="size-2.5 shrink-0 rounded-full" style={{ background: cor(c.sigla) }} />
-                <div className="flex-1">
-                  <div className="mb-1 flex items-center justify-between text-[13px]">
-                    <span className="font-semibold">{c.nome}</span>
-                    <span className="text-meta-navy-50">{c.qtdServicos} serviços</span>
-                  </div>
-                  <div className="bar bar--thin">
-                    <div className="bar__fill" style={{ width: (c.oportunidades / maxOpp) * 100 + "%", background: cor(c.sigla) }} />
-                  </div>
-                </div>
-                <span className="w-9 text-right text-[13px] font-bold" style={{ fontFamily: "var(--font-heading)" }}>{c.oportunidades}</span>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        <Card title="Resumo por coordenação" sub="Carteira de serviços e demanda comercial" pad={false}>
-          <div className="overflow-x-auto">
-            <table className="tbl" style={{ minWidth: 420 }}>
-              <thead>
-                <tr>
-                  <th>Coordenação</th>
-                  <th className="text-center">Serviços</th>
-                  <th className="text-center">Oportunidades</th>
+      <SectionTitle icon="target">Demanda por coordenação</SectionTitle>
+      <Card sub="Oportunidades comerciais com coordenação identificada (Pipefy) e tamanho da carteira de serviços." pad={false}>
+        <div className="overflow-x-auto">
+          <table className="tbl" style={{ minWidth: 560 }}>
+            <thead>
+              <tr>
+                <th>Coordenação</th>
+                <th style={{ width: "42%" }}>Demanda</th>
+                <th className="num">Oportunidades</th>
+                <th className="num">Serviços</th>
+              </tr>
+            </thead>
+            <tbody>
+              {coords.map((c) => (
+                <tr key={c.sigla}>
+                  <td className="font-semibold" style={{ fontFamily: "var(--font-heading)" }}>
+                    <span className="inline-flex items-center gap-2">
+                      <span className="size-2.5 rounded-full" style={{ background: cor(c.sigla) }} />
+                      {c.nome}
+                      <span className="font-normal text-meta-navy-50">{c.sigla}</span>
+                    </span>
+                  </td>
+                  <td>
+                    <div className="bar bar--thin">
+                      <div className="bar__fill" style={{ width: (c.oportunidades / maxOpp) * 100 + "%", background: cor(c.sigla) }} />
+                    </div>
+                  </td>
+                  <td className="num">{c.oportunidades}</td>
+                  <td className="num">{c.qtdServicos}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {coords.map((c) => (
-                  <tr key={c.sigla}>
-                    <td className="font-semibold" style={{ fontFamily: "var(--font-heading)" }}>
-                      <span className="inline-flex items-center gap-1.5">
-                        <span className="size-2 rounded-full" style={{ background: cor(c.sigla) }} />
-                        {c.nome}
-                      </span>
-                    </td>
-                    <td className="text-center"><span className="badge badge--neutral">{c.qtdServicos}</span></td>
-                    <td className="text-center"><span className="badge badge--info">{c.oportunidades}</span></td>
-                  </tr>
-                ))}
-                <tr>
-                  <td className="font-bold" style={{ fontFamily: "var(--font-heading)" }}>Total</td>
-                  <td className="text-center font-bold">{servicos.length}</td>
-                  <td className="text-center font-bold">{demandaTotal}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      </div>
+              ))}
+              <tr>
+                <td className="font-bold" style={{ fontFamily: "var(--font-heading)" }}>Total</td>
+                <td />
+                <td className="num font-bold">{demandaTotal}</td>
+                <td className="num font-bold">{servicos.length}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </Card>
     </div>
   );
 }

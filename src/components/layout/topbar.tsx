@@ -106,10 +106,10 @@ export function TopBar({ onToggleSidebar, onToggleDrawer, periodo, onPeriodoChan
         <kbd className="ml-2 rounded border border-border bg-secondary px-1.5 text-[11px]">⌘K</kbd>
       </button>
 
-      <div
-        className={cn("relative", naoAplica && "opacity-45")}
-        title={naoAplica ?? "Recorte temporal (afeta as leituras com data)"}
-      >
+      {/* Recorte temporal: só aparece nas páginas cujas leituras têm data.
+          Em páginas estruturais (SEM_RECORTE) ele seria inerte, então é ocultado. */}
+      {!naoAplica && (
+      <div className="relative" title="Recorte temporal (afeta as leituras com data)">
         <div className="flex items-center gap-1 rounded-lg border border-border bg-background p-1">
           <button
             disabled={!!naoAplica}
@@ -183,6 +183,7 @@ export function TopBar({ onToggleSidebar, onToggleDrawer, periodo, onPeriodoChan
           </div>
         )}
       </div>
+      )}
 
       <button
         title="Notificações"
