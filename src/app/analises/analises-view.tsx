@@ -409,8 +409,8 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
           const distSq = dx * dx + dy * dy || 1;
           const dist = Math.sqrt(distSq);
 
-          // Repulsion strength
-          const strength = (n1.r + n2.r) * 35 * alpha;
+          // Repulsion strength (aumentada para dar mais espaçamento)
+          const strength = (n1.r + n2.r) * 85 * alpha;
           const force = strength / distSq;
           const fx = (dx / dist) * force;
           const fy = (dy / dist) * force;
@@ -436,8 +436,8 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
         const dy = targetNode.y - sourceNode.y;
         const dist = Math.sqrt(dx * dx + dy * dy) || 1;
 
-        // Ideal distance between connected nodes
-        const desiredDist = 130;
+        // Ideal distance between connected nodes (aumentada para dar mais espaçamento)
+        const desiredDist = 190;
         const k = 0.045 * alpha;
         const force = (dist - desiredDist) * k;
         const fx = (dx / dist) * force;
@@ -467,11 +467,11 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
           return;
         }
 
-        // Pull to center
+        // Pull to center (suavizado para espalhar mais os nós)
         const dx = cx - node.x;
         const dy = cy - node.y;
-        node.vx += dx * 0.006 * alpha;
-        node.vy += dy * 0.006 * alpha;
+        node.vx += dx * 0.0025 * alpha;
+        node.vy += dy * 0.0025 * alpha;
 
         // Apply velocity and damping
         node.x += node.vx;
@@ -495,6 +495,34 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
     animId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(animId);
   }, [isSimulating, edges, simTrigger]);
+
+  // Native wheel event listener to prevent default page scrolling while zooming
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+
+    const onWheelNative = (e: WheelEvent) => {
+      e.preventDefault();
+      const zoomFactor = 1.08;
+      const nextZoom = e.deltaY < 0 ? zoom * zoomFactor : zoom / zoomFactor;
+      const clampedZoom = Math.max(0.25, Math.min(nextZoom, 4));
+
+      const rect = svg.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+
+      const newPanX = mx - ((mx - pan.x) * clampedZoom) / zoom;
+      const newPanY = my - ((my - pan.y) * clampedZoom) / zoom;
+
+      setZoom(clampedZoom);
+      setPan({ x: newPanX, y: newPanY });
+    };
+
+    svg.addEventListener("wheel", onWheelNative, { passive: false });
+    return () => {
+      svg.removeEventListener("wheel", onWheelNative);
+    };
+  }, [zoom, pan]);
 
   // Interaction Handlers
   const handleMouseDown = (e: React.MouseEvent<SVGElement>, nodeId?: string) => {
@@ -571,25 +599,6 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
     isDraggingNode.current = false;
     draggedNodeIdRef.current = null;
     isPanning.current = false;
-  };
-
-  const handleWheel = (e: React.WheelEvent<SVGSVGElement>) => {
-    e.preventDefault();
-    const zoomFactor = 1.08;
-    const nextZoom = e.deltaY < 0 ? zoom * zoomFactor : zoom / zoomFactor;
-    const clampedZoom = Math.max(0.25, Math.min(nextZoom, 4));
-
-    if (svgRef.current) {
-      const rect = svgRef.current.getBoundingClientRect();
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
-
-      const newPanX = mx - ((mx - pan.x) * clampedZoom) / zoom;
-      const newPanY = my - ((my - pan.y) * clampedZoom) / zoom;
-
-      setZoom(clampedZoom);
-      setPan({ x: newPanX, y: newPanY });
-    }
   };
 
   const releaseAllNodes = () => {
@@ -748,7 +757,6 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
-            onWheel={handleWheel}
             style={{ display: "block", cursor: isPanning.current ? "grabbing" : "grab" }}
           >
             {/* Legend inside SVG */}
