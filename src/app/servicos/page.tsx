@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/page-header";
 import { Kpi, Card, SectionTitle } from "@/components/dashboard/primitives";
 import { ErrorState } from "@/components/shared/states";
 import { Icon } from "@/components/dashboard/icon";
+import { periodoAtivo } from "@/lib/periodo-server";
 
 export const metadata: Metadata = { title: "Serviços & Portfólio" };
 export const dynamic = "force-dynamic";
@@ -19,9 +20,10 @@ const CORD_COR: Record<string, string> = {
 const cor = (sigla: string) => CORD_COR[sigla] ?? "#6B7299";
 
 export default async function ServicosPage() {
+  const { range } = await periodoAtivo();
   let servicos: ServicoPortfolioDTO[];
   try {
-    servicos = await bduApi.servicosPortfolio();
+    servicos = await bduApi.servicosPortfolio(range);
   } catch {
     return (
       <div className="mx-auto max-w-[1480px]">

@@ -128,6 +128,7 @@ export const bduApi = {
   fluxo: (p: Periodo = {}) => apiGet<FluxoMesDTO[]>("/api/bdu/financeiro/fluxo", { params: p }),
   contas: (p: Periodo = {}) => apiGet<ContaSaldoDTO[]>("/api/bdu/financeiro/contas", { params: p }),
 
-  servicosPortfolio: () => apiGet<ServicoPortfolioDTO[]>("/api/bdu/servicos/portfolio"),
+  servicosPortfolio: (p: Periodo = {}) =>
+    apiGet<ServicoPortfolioDTO[]>("/api/bdu/servicos/portfolio", { params: p }),
   transversaisFacts: () => apiGet<FactDTO[]>("/api/bdu/transversais/facts"),
 };
