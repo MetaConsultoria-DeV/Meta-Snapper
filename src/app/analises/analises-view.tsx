@@ -42,6 +42,36 @@ const METRICS = [
   { id: "registros", label: "Nº de vínculos" },
 ] as const;
 
+// Dimensões em que o valor de contrato NÃO duplica nem some: cada projeto cai num
+// único balde (1 cliente, 1 status, ele mesmo). Coordenação/membro/cargo/célula vêm
+// de membro_projeto (N por projeto) → somar valor ali infla, e coord ainda perde os
+// projetos só-contrato sem equipe alocada.
+const VALOR_DIMS = new Set(["projeto", "cliente", "status"]);
+
+/**
+ * Métricas que fazem sentido para a dimensão A escolhida (o eixo que a leitura mede).
+ * Trava as combinações degeneradas/enganosas (ver análise do banco):
+ *  - "Nº de projetos" some quando A=Projeto (todo nó valeria 1);
+ *  - "Nº de membros" some quando A=Membro (idem);
+ *  - "Valor" só por Projeto/Cliente/Status (nas demais ele duplica ou subconta).
+ */
+function metricsFor(dimA: string) {
+  return METRICS.filter((m) => {
+    if (m.id === "projetos") return dimA !== "projeto";
+    if (m.id === "membros") return dimA !== "membro";
+    if (m.id === "valor") return VALOR_DIMS.has(dimA);
+    return true; // registros: contagem bruta, sempre válida
+  });
+}
+
+/** Explica o que a métrica ativa mede, para não restar dúvida na leitura. */
+const METRIC_HINT: Record<string, string> = {
+  projetos: "Conta projetos distintos (cada contrato uma única vez).",
+  membros: "Conta pessoas distintas alocadas.",
+  valor: "Receita contratada — cada projeto somado uma única vez.",
+  registros: "Conta vínculos projeto–pessoa (linhas brutas).",
+};
+
 function newCell(): Cell {
   return { proj: new Set(), mem: new Set(), valor: new Map(), count: 0 };
 }
@@ -119,6 +149,15 @@ export function AnalisesView({ facts: raw }: { facts: FactDTO[] }) {
     setSel(null);
   };
 
+  // Trocar o eixo A pode invalidar a métrica atual → cai para a primeira válida.
+  const changeDimA = (v: string) => {
+    setSel(null);
+    setDimA(v);
+    const validas = metricsFor(v);
+    if (!validas.some((m) => m.id === metric)) setMetric(validas[0].id);
+  };
+  const metricOptions = metricsFor(dimA);
+
   const coordOptions = useMemo(
     () => ["todos", ...[...new Set(facts.map((f) => f.coord))].filter((c) => c !== "—").sort()],
     [facts],
@@ -159,13 +198,13 @@ export function AnalisesView({ facts: raw }: { facts: FactDTO[] }) {
             <span className="eyebrow-mini flex items-center gap-1.5 text-xs md:text-sm"><Icon name="sliders" size={13} />Construtor</span>
             <div className="flex flex-wrap items-center gap-2 md:gap-1">
               <span className="badge badge--info text-xs">A</span>
-              <MetaSelect value={dimA} onChange={pick(setDimA)} options={DIMS.filter((d) => d.id !== dimB).map((d) => [d.id, d.label] as [string, string])} />
+              <MetaSelect value={dimA} onChange={changeDimA} options={DIMS.filter((d) => d.id !== dimB).map((d) => [d.id, d.label] as [string, string])} />
               <span className="flowarrow hidden md:inline"><Icon name="arrowRight" size={18} /></span>
               <span className="badge badge--neutral text-xs">B</span>
               <MetaSelect value={dimB} onChange={pick(setDimB)} options={DIMS.filter((d) => d.id !== dimA).map((d) => [d.id, d.label] as [string, string])} />
               <span style={{ width: 1, height: 26, background: "var(--meta-navy-10)", margin: "0 4px" }} className="hidden md:inline-block" />
               <span className="eyebrow-mini text-xs md:text-sm">Métrica</span>
-              <MetaSelect value={metric} onChange={pick(setMetric)} options={METRICS.map((x) => [x.id, x.label] as [string, string])} />
+              <MetaSelect value={metric} onChange={pick(setMetric)} options={metricOptions.map((x) => [x.id, x.label] as [string, string])} />
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2 md:ml-auto">
@@ -187,6 +226,10 @@ export function AnalisesView({ facts: raw }: { facts: FactDTO[] }) {
             <div className={"seg__opt" + (view === "pivot" ? " active" : "")} onClick={() => setView("pivot")}><Icon name="table" size={15} />Pivot</div>
             <div className={"seg__opt" + (view === "cards" ? " active" : "")} onClick={() => setView("cards")}><Icon name="grid" size={15} />Comparar</div>
           </div>
+        </div>
+        <div className="mt-3 flex items-start gap-1.5 text-[11.5px] leading-snug text-meta-navy-50">
+          <Icon name="info" size={12} className="mt-0.5 shrink-0" />
+          <span>{METRIC_HINT[metric]} As métricas disponíveis mudam conforme a dimensão A — só aparecem as que o banco sustenta sem inflar ou zerar.</span>
         </div>
       </div>
 
@@ -242,7 +285,7 @@ interface GraphEdge {
 }
 
 function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel }: { aTotals: ARow[]; bTotals: { b: string; t: number }[]; val: (c?: Cell) => number; dimAmeta: DimMeta; dimBmeta: DimMeta; fmt: (v: number) => string; sel: { side: "a" | "b"; i: number } | null; setSel: (s: { side: "a" | "b"; i: number } | null) => void; }) {
-  const [limitMode, setLimitMode] = useState<"top8" | "top15" | "all">("all");
+  const [limitMode, setLimitMode] = useState<"top8" | "top15" | "all">("top15");
   const [isSimulating, setIsSimulating] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [zoom, setZoom] = useState(1);
