@@ -257,7 +257,7 @@ export function ComercialView({
         <Card pad={false}>
           <AdaptiveTable className="max-h-96">
             <thead>
-              <tr><th className="min-w-12">ID</th><th className="min-w-20">Criado em</th><th className="min-w-32">Card / Contato</th><th className="min-w-24">Fase</th><th className="min-w-20">Status</th><th className="min-w-24">Origem</th><th className="min-w-16">Coord.</th><th className="min-w-28">Motivo</th></tr>
+              <tr><th className="min-w-12">ID</th><th className="min-w-20">Criado em</th><th className="min-w-32">Card / Contato</th><th className="min-w-20">Status</th><th className="min-w-24">Origem</th><th className="min-w-16">Coord.</th><th className="min-w-28">Motivo</th></tr>
             </thead>
             <tbody>
               {opps.map((o) => {
@@ -267,7 +267,6 @@ export function ComercialView({
                     <td className="font-semibold" style={{ fontFamily: "var(--font-heading)" }}>#{o.id}</td>
                     <td className="muted text-meta-navy-50 whitespace-nowrap text-xs md:text-sm">{fmtData(o.criado_em)}</td>
                     <td className="font-medium text-meta-navy truncate text-xs md:text-sm" title={o.lead ?? undefined}>{o.lead ?? "—"}</td>
-                    <td><span className="badge badge--info text-xs md:text-sm">{o.fase}</span></td>
                     <td><span className={`badge ${st.cls} text-xs md:text-sm`}>{st.label}</span></td>
                     <td className="muted text-meta-navy-50 truncate text-xs md:text-sm">{o.origem ?? "—"}</td>
                     <td><span className="text-xs md:text-sm">{o.coordenacao_sigla ?? <span className="muted text-meta-navy-50">—</span>}</span></td>
