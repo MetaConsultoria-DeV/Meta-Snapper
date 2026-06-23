@@ -21,6 +21,18 @@ function classificar(fase: string): FaseTipo {
   return "ativo";
 }
 
+/** Status terminal da oportunidade → rótulo + cor do badge. */
+const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
+  ativo: { label: "Ativo", cls: "badge--info" },
+  fechado: { label: "Ganho", cls: "badge--success" },
+  desistido: { label: "Desistido", cls: "badge--danger" },
+  recusado: { label: "Recusado", cls: "badge--neutral" },
+  postergado: { label: "Postergado", cls: "badge--warning" },
+};
+
+/** Data ISO (YYYY-MM-DD…) → DD/MM/AAAA. */
+const fmtData = (s: string | null) => (s ? s.slice(0, 10).split("-").reverse().join("/") : "—");
+
 export function ComercialView({
   funil,
   oportunidades,
@@ -230,19 +242,23 @@ export function ComercialView({
         <Card pad={false}>
           <AdaptiveTable className="max-h-96">
             <thead>
-              <tr><th className="min-w-12">ID</th><th className="min-w-24">Cliente</th><th className="min-w-20">Coordenação</th><th className="min-w-20">Fase</th><th className="min-w-24">Origem</th><th className="num min-w-20">Valor</th></tr>
+              <tr><th className="min-w-12">ID</th><th className="min-w-20">Criado em</th><th className="min-w-24">Fase</th><th className="min-w-20">Status</th><th className="min-w-24">Origem</th><th className="min-w-16">Coord.</th><th className="min-w-28">Motivo</th></tr>
             </thead>
             <tbody>
-              {opps.map((o) => (
-                <tr key={o.id}>
-                  <td className="font-semibold" style={{ fontFamily: "var(--font-heading)" }}>#{o.id}</td>
-                  <td className="muted text-meta-navy-50 truncate">{o.cliente ?? "—"}</td>
-                  <td><span className="text-xs md:text-sm">{o.coordenacao_sigla ?? <span className="muted text-meta-navy-50">—</span>}</span></td>
-                  <td><span className="badge badge--info text-xs md:text-sm">{o.fase}</span></td>
-                  <td className="muted text-meta-navy-50 truncate text-xs md:text-sm">{o.origem ?? "—"}</td>
-                  <td className="num text-xs md:text-sm whitespace-nowrap">{o.valor ? BRL(o.valor) : "—"}</td>
-                </tr>
-              ))}
+              {opps.map((o) => {
+                const st = STATUS_BADGE[o.status_terminal] ?? { label: o.status_terminal, cls: "badge--ghost" };
+                return (
+                  <tr key={o.id}>
+                    <td className="font-semibold" style={{ fontFamily: "var(--font-heading)" }}>#{o.id}</td>
+                    <td className="muted text-meta-navy-50 whitespace-nowrap text-xs md:text-sm">{fmtData(o.criado_em)}</td>
+                    <td><span className="badge badge--info text-xs md:text-sm">{o.fase}</span></td>
+                    <td><span className={`badge ${st.cls} text-xs md:text-sm`}>{st.label}</span></td>
+                    <td className="muted text-meta-navy-50 truncate text-xs md:text-sm">{o.origem ?? "—"}</td>
+                    <td><span className="text-xs md:text-sm">{o.coordenacao_sigla ?? <span className="muted text-meta-navy-50">—</span>}</span></td>
+                    <td className="muted text-meta-navy-50 truncate text-xs md:text-sm" title={o.motivo_perda ?? undefined}>{o.motivo_perda ?? "—"}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </AdaptiveTable>
           {oportunidades.length > 200 && <div className="muted px-4 py-2 text-xs md:text-[12px] text-meta-navy-50">Exibindo 200 de {oportunidades.length} no período.</div>}
