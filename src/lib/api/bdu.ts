@@ -127,7 +127,7 @@ export const bduApi = {
   clientesComercial: () => apiGet<ClienteComercialDTO[]>("/api/bdu/comercial/clientes", { next: { revalidate: 300 } }),
 
   // Financeiro (Tempo Real Absoluto)
-  contratos: () => apiGet<ContratoDTO[]>("/api/bdu/financeiro/contratos", { cache: "no-store" }),
+  contratos: (p: Periodo = {}) => apiGet<ContratoDTO[]>("/api/bdu/financeiro/contratos", { params: p, cache: "no-store" }),
   transacoes: (p: Periodo & { tipo?: "entrada" | "saida" } = {}) =>
     apiGet<TransacaoDTO[]>("/api/bdu/financeiro/transacoes", { params: p, cache: "no-store" }),
   fluxo: (p: Periodo = {}) => apiGet<FluxoMesDTO[]>("/api/bdu/financeiro/fluxo", { params: p, cache: "no-store" }),

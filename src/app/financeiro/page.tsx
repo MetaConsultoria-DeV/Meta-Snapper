@@ -23,10 +23,9 @@ export default async function FinanceiroPage() {
 }
 
 async function carregar() {
-  // Contratos ficam fora do recorte: não têm datas confiáveis no banco.
   const { range } = await periodoAtivo();
   return Promise.all([
-    bduApi.contratos(),
+    bduApi.contratos(range),
     bduApi.transacoes(range),
     bduApi.fluxo(range),
     bduApi.contas(range),
