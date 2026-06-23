@@ -4,7 +4,7 @@ import { useState } from "react";
 import { BRL } from "@/lib/mock-data";
 import type { ContratoDTO, TransacaoDTO, FluxoMesDTO, ContaSaldoDTO } from "@/lib/api/bdu";
 import { PageHeader } from "@/components/page-header";
-import { Kpi, Card, SectionTitle, Badge, Bar, FlowChain } from "@/components/dashboard/primitives";
+import { Kpi, Card, SectionTitle, Badge, Bar } from "@/components/dashboard/primitives";
 import { Icon } from "@/components/dashboard/icon";
 import { AdaptiveTable } from "@/components/ui/adaptive-table";
 import { ResponsiveGrid } from "@/components/ui/responsive-grid";
@@ -57,29 +57,6 @@ export function FinanceiroView({
         <Kpi icon="arrowUp" label="Saídas" value={BRL(totalSaidas)} note="no período" />
         <Kpi icon="finance" label="Resultado" value={BRL(totalEntradas - totalSaidas)} note="entradas − saídas" />
       </ResponsiveGrid>
-
-      <Card pad={true} className="mb-6">
-        <div className="flex flex-col sm:flex-wrap sm:items-center gap-3">
-          <span className="eyebrow-mini flex items-center gap-1.5">
-            <Icon name="link" size={13} />
-            Como o dinheiro se conecta
-          </span>
-          <div className="overflow-x-auto">
-            <FlowChain
-              steps={[
-                { type: "cliente", label: "Cliente" },
-                { type: "contrato", label: "Contrato" },
-                { type: "projeto", label: "Projeto" },
-                { type: "contrato", label: "Parcelas" },
-                { type: "contrato", label: "Transações" },
-              ]}
-            />
-          </div>
-          <span className="muted text-[12.5px] text-meta-navy-50 sm:ml-auto">
-            {parcelasAbertas} parcelas em aberto · {transacoes.filter((t) => t.tipo === "entrada").length} entradas
-          </span>
-        </div>
-      </Card>
 
       <SectionTitle icon="doc">Contratos</SectionTitle>
       <Card pad={false} className="mb-2">
