@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useSyncExternalStore } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Sidebar } from "./sidebar";
 import { TopBar } from "./topbar";
 import { Drawer } from "./drawer";
@@ -30,9 +30,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
 
   const raw = useSyncExternalStore(assinar, lerCookie, () => "");
   const periodo = useMemo(() => parsePeriodo(raw ? decodeURIComponent(raw) : null), [raw]);
+
+  // A tela de login não usa o shell (sidebar/topbar) — renderiza só o conteúdo.
+  if (pathname === "/login") return <>{children}</>;
 
   const mudarPeriodo = (p: Periodo) => {
     document.cookie =

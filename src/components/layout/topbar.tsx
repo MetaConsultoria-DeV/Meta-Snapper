@@ -6,6 +6,7 @@ import { PanelLeft, Menu, Search, Calendar, Bell, ChevronRight } from "lucide-re
 import { ROUTE_CRUMB } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 import { periodoLabels, type Periodo, type PeriodoKey } from "@/lib/periodo";
+import LogoutButton from "@/components/LogoutButton";
 
 type TopBarProps = {
   onToggleSidebar: () => void;
@@ -188,6 +189,8 @@ export function TopBar({ onToggleSidebar, onToggleDrawer, periodo, onPeriodoChan
       >
         <Bell size={18} />
       </button>
+
+      <LogoutButton />
     </header>
   );
 }
