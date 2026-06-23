@@ -2,10 +2,16 @@
  * Cliente HTTP centralizado para o backend FastAPI (PAPE API).
  * Nenhuma página deve chamar `fetch` diretamente — sempre passar por aqui.
  *
- * Base URL via env: NEXT_PUBLIC_API_URL (default http://localhost:8000).
+ * Só roda no servidor (Server Components) — o `server-only` garante em build-time
+ * que este módulo nunca entre no bundle do cliente, mantendo a URL do backend fora dele.
+ *
+ * Base URL via env: `API_URL` (server-only). Por compatibilidade ainda lê
+ * `NEXT_PUBLIC_API_URL` como fallback — prefira migrar o deploy para `API_URL`.
  */
+import "server-only";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const BASE_URL =
+  process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 export class ApiError extends Error {
   constructor(

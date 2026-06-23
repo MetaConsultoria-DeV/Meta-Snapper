@@ -7,7 +7,6 @@ import { Icon } from "@/components/dashboard/icon";
 import { periodoAtivo } from "@/lib/periodo-server";
 
 export const metadata: Metadata = { title: "Serviços & Portfólio" };
-export const dynamic = "force-dynamic";
 
 /** Cores por coordenação (sigla) — paleta de marca, já que a API não traz cor. */
 const CORD_COR: Record<string, string> = {

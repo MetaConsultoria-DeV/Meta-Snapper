@@ -5,7 +5,6 @@ import { FinanceiroView } from "./financeiro-view";
 import { ErrorState } from "@/components/shared/states";
 
 export const metadata: Metadata = { title: "Contratos & Financeiro" };
-export const dynamic = "force-dynamic";
 
 export default async function FinanceiroPage() {
   let data: Awaited<ReturnType<typeof carregar>>;

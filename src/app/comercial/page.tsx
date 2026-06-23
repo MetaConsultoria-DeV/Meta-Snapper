@@ -6,7 +6,6 @@ import { periodoAtivo } from "@/lib/periodo-server";
 import { periodoLabels, type Periodo } from "@/lib/periodo";
 
 export const metadata: Metadata = { title: "Comercial" };
-export const dynamic = "force-dynamic";
 
 const fmtBR = (s?: string) => (s ? s.split("-").reverse().slice(0, 2).join("/") : "");
 

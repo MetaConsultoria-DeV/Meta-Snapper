@@ -7,8 +7,6 @@ import { BarChart, Donut } from "@/components/dashboard/charts";
 import { ErrorState } from "@/components/shared/states";
 import { Icon } from "@/components/dashboard/icon";
 
-export const dynamic = "force-dynamic";
-
 const SISTEMA = (o: Awaited<ReturnType<typeof bduApi.overview>>) => [
   { href: "/mapa-pessoas", icon: "people", label: "Pessoas", val: o.membros, sub: `${o.celulas} células · ${o.coordenacoes} coord.`, color: "#0067FF" },
   { href: "/servicos", icon: "services", label: "Serviços", val: o.servicos, sub: "carta técnica", color: "#E5484D" },

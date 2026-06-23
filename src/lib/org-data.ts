@@ -201,3 +201,6 @@ export const ORG = {
     posicoes: posicoes.length,
   },
 };
+
+/** Shape serializável do ORG, para passar de Server → Client Component. */
+export type Org = typeof ORG;
