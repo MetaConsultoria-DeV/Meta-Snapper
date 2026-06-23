@@ -50,6 +50,12 @@ export function ComercialView({
 }) {
   const [tab, setTab] = useState<"oportunidades" | "clientes">("oportunidades");
   const [fFase, setFFase] = useState("todas");
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const updateFase = (novaFase: string) => {
+    setFFase(novaFase);
+    setCurrentPage(1);
+  };
 
   // Ordem cronológica desejada para as fases ativas (excluindo Validação com Adm-Fin)
   const ORDEM_ATIVO = [
@@ -92,7 +98,16 @@ export function ComercialView({
       ),
     ),
   ];
-  const opps = (fFase === "todas" ? oportunidades : oportunidades.filter((o) => o.fase === fFase)).slice(0, 200);
+  const PAGE_SIZE = 200;
+  const filteredOpps = fFase === "todas"
+    ? oportunidades
+    : oportunidades.filter((o) => o.fase.toLowerCase() === fFase.toLowerCase());
+
+  const totalItems = filteredOpps.length;
+  const totalPages = Math.ceil(totalItems / PAGE_SIZE);
+  const activePage = Math.min(currentPage, Math.max(totalPages, 1));
+  const startIndex = (activePage - 1) * PAGE_SIZE;
+  const opps = filteredOpps.slice(startIndex, startIndex + PAGE_SIZE);
   const palette = ["#E5484D", "#F5A623", "#7C4DFF", "#6B7299", "#B5BACC", "#22C0FF"];
 
   // Motivos de perda: lista mostra TODOS; o donut agrupa top 5 + "Outros" (resto),
@@ -143,7 +158,7 @@ export function ComercialView({
                 <div style={{ minWidth: "300px" }}>
                   <Funnel3D
                     stages={ativo.map((f) => ({ fase: f.fase, qtd: f.qtd, valor: f.valor }))}
-                    onPhase={setFFase}
+                    onPhase={updateFase}
                   />
                 </div>
               </div>
@@ -233,7 +248,7 @@ export function ComercialView({
         </div>
         {tab === "oportunidades" && (
           <div className="w-full sm:w-auto">
-            <MetaSelect value={fFase} onChange={setFFase} options={faseOptions.map((f) => [f, f === "todas" ? "Todas as fases" : f] as [string, string])} />
+            <MetaSelect value={fFase} onChange={updateFase} options={faseOptions.map((f) => [f, f === "todas" ? "Todas as fases" : f] as [string, string])} />
           </div>
         )}
       </div>
@@ -262,7 +277,110 @@ export function ComercialView({
               })}
             </tbody>
           </AdaptiveTable>
-          {oportunidades.length > 200 && <div className="muted px-4 py-2 text-xs md:text-[12px] text-meta-navy-50">Exibindo 200 de {oportunidades.length} no período.</div>}
+          {/* Paginação */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-meta-navy-10 px-4 py-3 bg-meta-paper/50">
+            <div className="text-xs md:text-sm text-meta-navy-50 muted">
+              Exibindo {totalItems > 0 ? startIndex + 1 : 0} a {Math.min(startIndex + PAGE_SIZE, totalItems)} de {totalItems} {fFase !== "todas" ? `em "${fFase}"` : ""} (total: {oportunidades.length} no período).
+            </div>
+            {totalPages > 1 && (
+              <div className="flex items-center gap-1.5">
+                {/* Botão Anterior */}
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                  disabled={activePage === 1}
+                  className="flex size-8 items-center justify-center rounded-lg text-meta-navy-50 hover:bg-meta-navy-10 disabled:opacity-30 disabled:hover:bg-transparent transition-all cursor-pointer disabled:cursor-not-allowed"
+                >
+                  &lt;
+                </button>
+
+                {/* Números de Página */}
+                {(() => {
+                  const pages = [];
+                  const maxVisible = 5;
+                  
+                  let startPage = Math.max(1, activePage - 2);
+                  let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+                  
+                  if (endPage - startPage < maxVisible - 1) {
+                    startPage = Math.max(1, endPage - maxVisible + 1);
+                  }
+                  
+                  if (startPage > 1) {
+                    pages.push(
+                      <button
+                        key={1}
+                        onClick={() => setCurrentPage(1)}
+                        className={`px-3 py-1.5 text-sm transition-all font-medium cursor-pointer relative ${
+                          activePage === 1
+                            ? "font-bold text-meta-navy-80 after:absolute after:bottom-0 after:left-1/4 after:right-1/4 after:h-[2px] after:bg-meta-navy-70"
+                            : "text-meta-navy-30 hover:text-meta-navy hover:font-semibold"
+                        }`}
+                      >
+                        1
+                      </button>
+                    );
+                    if (startPage > 2) {
+                      pages.push(
+                        <span key="dots-start" className="px-1 text-meta-navy-30 text-sm">
+                          ...
+                        </span>
+                      );
+                    }
+                  }
+                  
+                  for (let i = startPage; i <= endPage; i++) {
+                    pages.push(
+                      <button
+                        key={i}
+                        onClick={() => setCurrentPage(i)}
+                        className={`px-3 py-1.5 text-sm transition-all font-medium cursor-pointer relative ${
+                          activePage === i
+                            ? "font-bold text-meta-navy-80 after:absolute after:bottom-0 after:left-1/4 after:right-1/4 after:h-[2px] after:bg-meta-navy-70"
+                            : "text-meta-navy-30 hover:text-meta-navy hover:font-semibold"
+                        }`}
+                      >
+                        {i}
+                      </button>
+                    );
+                  }
+                  
+                  if (endPage < totalPages) {
+                    if (endPage < totalPages - 1) {
+                      pages.push(
+                        <span key="dots-end" className="px-1 text-meta-navy-30 text-sm">
+                          ...
+                        </span>
+                      );
+                    }
+                    pages.push(
+                      <button
+                        key={totalPages}
+                        onClick={() => setCurrentPage(totalPages)}
+                        className={`px-3 py-1.5 text-sm transition-all font-medium cursor-pointer relative ${
+                          activePage === totalPages
+                            ? "font-bold text-meta-navy-80 after:absolute after:bottom-0 after:left-1/4 after:right-1/4 after:h-[2px] after:bg-meta-navy-70"
+                            : "text-meta-navy-30 hover:text-meta-navy hover:font-semibold"
+                        }`}
+                      >
+                        {totalPages}
+                      </button>
+                    );
+                  }
+                  
+                  return pages;
+                })()}
+
+                {/* Botão Próximo */}
+                <button
+                  onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                  disabled={activePage === totalPages}
+                  className="flex size-8 items-center justify-center rounded-lg text-meta-navy-50 hover:bg-meta-navy-10 disabled:opacity-30 disabled:hover:bg-transparent transition-all cursor-pointer disabled:cursor-not-allowed"
+                >
+                  &gt;
+                </button>
+              </div>
+            )}
+          </div>
         </Card>
       ) : (
         <ResponsiveGrid cols="4-8-12" gap="md">
