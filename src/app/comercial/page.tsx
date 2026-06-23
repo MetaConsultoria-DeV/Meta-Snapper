@@ -44,8 +44,8 @@ export default async function ComercialPage() {
     data = await Promise.all([
       bduApi.funil(range),
       bduApi.oportunidades(range),
-      bduApi.origens(),
-      bduApi.motivosPerda(),
+      bduApi.origens(range),
+      bduApi.motivosPerda(range),
       bduApi.clientesComercial(),
     ]);
   } catch {

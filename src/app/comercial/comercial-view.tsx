@@ -64,7 +64,9 @@ export function ComercialView({
   const ganhoQtd = sum(ganho, "qtd");
   const perdidoQtd = sum(perdido, "qtd");
   const pipelineQtd = sum(ativo, "qtd");
-  const pipelineValor = sum(ativo, "valor");
+  // `valor_fechado` só existe para oportunidades fechadas/terminais — pipeline ativo
+  // não tem valor no banco. Usamos o valor GANHO (real e que varia por período).
+  const ganhoValor = sum(ganho, "valor");
   const conversao = ganhoQtd + perdidoQtd > 0 ? Math.round((ganhoQtd / (ganhoQtd + perdidoQtd)) * 100) : 0;
 
   const faseOptions = [
@@ -108,7 +110,7 @@ export function ComercialView({
                 <div className="min-w-0">
                   <span className="eyebrow text-meta-blue-accent text-xs md:text-sm">Funil comercial · pipeline ativo</span>
                   <div className="mt-1 text-base md:text-lg font-bold break-words" style={{ fontFamily: "var(--font-heading)" }}>
-                    {pipelineQtd} em aberto · {BRL(pipelineValor)}
+                    {pipelineQtd} em aberto
                   </div>
                 </div>
                 <div className="text-right shrink-0">
@@ -149,7 +151,7 @@ export function ComercialView({
               Ganhos/Perdidos/Postergados não inflam o funil ativo — leitura atual protegida.
             </div>
           </Card>
-          <Card title="Origem das oportunidades" sub="De onde vêm as demandas (histórico)">
+          <Card title="Origem das oportunidades" sub="De onde vêm as demandas (no período)">
             <div className="mt-1 flex flex-col gap-2">
               {origens.slice(0, 5).map((o, i) => {
                 const max = Math.max(...origens.map((x) => x.qtd), 1);
@@ -173,7 +175,7 @@ export function ComercialView({
       {motivosPerda.length > 0 && (
         <ResponsiveGrid cols="4-8-12" gap="md" className="mb-6">
           <div className="col-span-4 md:col-span-4 lg:col-span-6">
-            <Card title="Motivos de perda" sub="Por que oportunidades não avançam (histórico)">
+            <Card title="Motivos de perda" sub="Por que oportunidades não avançam (no período)">
               <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-5">
                 <div className="shrink-0">
                   <Donut size={100} segments={motivosPerda.slice(0, 5).map((m, i) => ({ value: m.qtd, color: palette[i] }))} center={<div><div className="text-base md:text-lg font-extrabold" style={{ fontFamily: "var(--font-heading)" }}>{motivosPerda.reduce((s, m) => s + m.qtd, 0)}</div><div className="text-[9px] md:text-[10px] text-meta-navy-50">perdas</div></div>} />
@@ -195,7 +197,7 @@ export function ComercialView({
                 <div><div className="text-lg md:text-2xl font-bold" style={{ fontFamily: "var(--font-heading)" }}>{pipelineQtd}</div><div className="muted text-[10px] md:text-[11.5px] text-meta-navy-50">em pipeline ativo</div></div>
                 <div><div className="text-lg md:text-2xl font-bold" style={{ fontFamily: "var(--font-heading)" }}>{conversao}%</div><div className="muted text-[10px] md:text-[11.5px] text-meta-navy-50">conversão</div></div>
                 <div><div className="text-lg md:text-2xl font-bold" style={{ fontFamily: "var(--font-heading)" }}>{clientes.length}</div><div className="muted text-[10px] md:text-[11.5px] text-meta-navy-50">clientes</div></div>
-                <div><div className="text-lg md:text-2xl font-bold" style={{ fontFamily: "var(--font-heading)" }}>{BRL(pipelineValor)}</div><div className="muted text-[10px] md:text-[11.5px] text-meta-navy-50">pipeline</div></div>
+                <div><div className="text-lg md:text-2xl font-bold" style={{ fontFamily: "var(--font-heading)" }}>{BRL(ganhoValor)}</div><div className="muted text-[10px] md:text-[11.5px] text-meta-navy-50">ganho no período</div></div>
               </div>
             </Card>
           </div>

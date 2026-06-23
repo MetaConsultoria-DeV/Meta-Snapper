@@ -118,8 +118,9 @@ export const bduApi = {
   funil: (p: Periodo = {}) => apiGet<FunilFaseDTO[]>("/api/bdu/comercial/funil", { params: p }),
   oportunidades: (p: Periodo = {}) =>
     apiGet<OportunidadeDTO[]>("/api/bdu/comercial/oportunidades", { params: p }),
-  origens: () => apiGet<NomeQtdDTO[]>("/api/bdu/comercial/origens"),
-  motivosPerda: () => apiGet<NomeQtdDTO[]>("/api/bdu/comercial/motivos-perda"),
+  origens: (p: Periodo = {}) => apiGet<NomeQtdDTO[]>("/api/bdu/comercial/origens", { params: p }),
+  motivosPerda: (p: Periodo = {}) =>
+    apiGet<NomeQtdDTO[]>("/api/bdu/comercial/motivos-perda", { params: p }),
   clientesComercial: () => apiGet<ClienteComercialDTO[]>("/api/bdu/comercial/clientes"),
 
   contratos: () => apiGet<ContratoDTO[]>("/api/bdu/financeiro/contratos"),
