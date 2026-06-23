@@ -42,6 +42,7 @@ export type OportunidadeDTO = {
   status_terminal: string;
   criado_em: string | null;
   responsaveis: string | null;
+  lead: string | null;
   cliente: string | null;
   coordenacao: string | null;
   coordenacao_sigla: string | null;
