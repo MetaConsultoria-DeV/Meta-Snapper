@@ -157,7 +157,7 @@ export function ComercialView({
                 const max = Math.max(...origens.map((x) => x.qtd), 1);
                 return (
                   <div key={i} className="flex items-center gap-3">
-                    <span className="min-w-[80px] md:min-w-[120px] truncate text-xs md:text-[13px] text-meta-navy-70">{o.nome}</span>
+                    <span title={o.nome} className="w-[88px] md:w-[140px] shrink-0 truncate text-xs md:text-[13px] text-meta-navy-70">{o.nome}</span>
                     <div className="h-4 flex-1 overflow-hidden rounded-md bg-meta-paper">
                       <div className="h-full rounded-md" style={{ width: (o.qtd / max) * 100 + "%", background: "var(--meta-blue)" }} />
                     </div>
