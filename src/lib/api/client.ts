@@ -22,6 +22,8 @@ type RequestOptions = {
   params?: Record<string, string | number | boolean | undefined>;
   /** Next.js fetch cache/revalidate. */
   next?: { revalidate?: number; tags?: string[] };
+  /** Next.js native fetch cache mode (e.g. no-store, force-cache) */
+  cache?: RequestCache;
   signal?: AbortSignal;
 };
 
@@ -39,6 +41,7 @@ export async function apiGet<T>(path: string, options: RequestOptions = {}): Pro
   const res = await fetch(buildUrl(path, options.params), {
     method: "GET",
     headers: { Accept: "application/json" },
+    cache: options.cache,
     next: options.next,
     signal: options.signal,
   });

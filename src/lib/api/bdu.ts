@@ -111,25 +111,29 @@ export type FactDTO = {
 type Periodo = { data_inicio?: string; data_fim?: string };
 
 export const bduApi = {
-  overview: (p: Periodo = {}) => apiGet<OverviewDTO>("/api/bdu/overview", { params: p }),
-  celulas: () => apiGet<CelulaDTO[]>("/api/bdu/estrutura/celulas"),
-  pessoas: () => apiGet<PessoaDTO[]>("/api/bdu/estrutura/pessoas"),
+  // Dashboard & Estrutura
+  overview: (p: Periodo = {}) => apiGet<OverviewDTO>("/api/bdu/overview", { params: p, cache: "no-store" }),
+  celulas: () => apiGet<CelulaDTO[]>("/api/bdu/estrutura/celulas", { next: { revalidate: 900 } }),
+  pessoas: () => apiGet<PessoaDTO[]>("/api/bdu/estrutura/pessoas", { next: { revalidate: 900 } }),
 
-  funil: (p: Periodo = {}) => apiGet<FunilFaseDTO[]>("/api/bdu/comercial/funil", { params: p }),
+  // Comercial
+  funil: (p: Periodo = {}) => apiGet<FunilFaseDTO[]>("/api/bdu/comercial/funil", { params: p, next: { revalidate: 60 } }),
   oportunidades: (p: Periodo = {}) =>
-    apiGet<OportunidadeDTO[]>("/api/bdu/comercial/oportunidades", { params: p }),
-  origens: (p: Periodo = {}) => apiGet<NomeQtdDTO[]>("/api/bdu/comercial/origens", { params: p }),
+    apiGet<OportunidadeDTO[]>("/api/bdu/comercial/oportunidades", { params: p, next: { revalidate: 60 } }),
+  origens: (p: Periodo = {}) => apiGet<NomeQtdDTO[]>("/api/bdu/comercial/origens", { params: p, next: { revalidate: 60 } }),
   motivosPerda: (p: Periodo = {}) =>
-    apiGet<NomeQtdDTO[]>("/api/bdu/comercial/motivos-perda", { params: p }),
-  clientesComercial: () => apiGet<ClienteComercialDTO[]>("/api/bdu/comercial/clientes"),
+    apiGet<NomeQtdDTO[]>("/api/bdu/comercial/motivos-perda", { params: p, next: { revalidate: 60 } }),
+  clientesComercial: () => apiGet<ClienteComercialDTO[]>("/api/bdu/comercial/clientes", { next: { revalidate: 300 } }),
 
-  contratos: () => apiGet<ContratoDTO[]>("/api/bdu/financeiro/contratos"),
+  // Financeiro (Tempo Real Absoluto)
+  contratos: () => apiGet<ContratoDTO[]>("/api/bdu/financeiro/contratos", { cache: "no-store" }),
   transacoes: (p: Periodo & { tipo?: "entrada" | "saida" } = {}) =>
-    apiGet<TransacaoDTO[]>("/api/bdu/financeiro/transacoes", { params: p }),
-  fluxo: (p: Periodo = {}) => apiGet<FluxoMesDTO[]>("/api/bdu/financeiro/fluxo", { params: p }),
-  contas: (p: Periodo = {}) => apiGet<ContaSaldoDTO[]>("/api/bdu/financeiro/contas", { params: p }),
+    apiGet<TransacaoDTO[]>("/api/bdu/financeiro/transacoes", { params: p, cache: "no-store" }),
+  fluxo: (p: Periodo = {}) => apiGet<FluxoMesDTO[]>("/api/bdu/financeiro/fluxo", { params: p, cache: "no-store" }),
+  contas: (p: Periodo = {}) => apiGet<ContaSaldoDTO[]>("/api/bdu/financeiro/contas", { params: p, cache: "no-store" }),
 
+  // Serviços & Projetos
   servicosPortfolio: (p: Periodo = {}) =>
-    apiGet<ServicoPortfolioDTO[]>("/api/bdu/servicos/portfolio", { params: p }),
-  transversaisFacts: () => apiGet<FactDTO[]>("/api/bdu/transversais/facts"),
+    apiGet<ServicoPortfolioDTO[]>("/api/bdu/servicos/portfolio", { params: p, next: { revalidate: 900 } }),
+  transversaisFacts: () => apiGet<FactDTO[]>("/api/bdu/transversais/facts", { next: { revalidate: 900 } }),
 };
