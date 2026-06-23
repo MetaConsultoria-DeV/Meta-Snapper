@@ -83,6 +83,15 @@ export function ComercialView({
   const opps = (fFase === "todas" ? oportunidades : oportunidades.filter((o) => o.fase === fFase)).slice(0, 200);
   const palette = ["#E5484D", "#F5A623", "#7C4DFF", "#6B7299", "#B5BACC", "#22C0FF"];
 
+  // Motivos de perda: lista mostra TODOS; o donut agrupa top 5 + "Outros" (resto),
+  // mantendo o total correto no centro.
+  const totalPerdas = motivosPerda.reduce((s, m) => s + m.qtd, 0);
+  const restoPerdas = motivosPerda.slice(5).reduce((s, m) => s + m.qtd, 0);
+  const donutSegs = [
+    ...motivosPerda.slice(0, 5).map((m, i) => ({ value: m.qtd, color: palette[i] })),
+    ...(restoPerdas > 0 ? [{ value: restoPerdas, color: "#C8CEDC" }] : []),
+  ];
+
   return (
     <div className="mx-auto max-w-[1480px]">
       <PageHeader
@@ -174,16 +183,16 @@ export function ComercialView({
       {/* motivos de perda */}
       {motivosPerda.length > 0 && (
         <ResponsiveGrid cols="4-8-12" gap="md" className="mb-6">
-          <div className="col-span-4 md:col-span-4 lg:col-span-6">
-            <Card title="Motivos de perda" sub="Por que oportunidades não avançam (no período)">
-              <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-5">
-                <div className="shrink-0">
-                  <Donut size={100} segments={motivosPerda.slice(0, 5).map((m, i) => ({ value: m.qtd, color: palette[i] }))} center={<div><div className="text-base md:text-lg font-extrabold" style={{ fontFamily: "var(--font-heading)" }}>{motivosPerda.reduce((s, m) => s + m.qtd, 0)}</div><div className="text-[9px] md:text-[10px] text-meta-navy-50">perdas</div></div>} />
+          <div className="col-span-4 md:col-span-8 lg:col-span-8">
+            <Card title="Motivos de perda" sub={`Por que oportunidades não avançam (no período) · ${totalPerdas} perdas`}>
+              <div className="flex flex-col lg:flex-row items-start gap-5 md:gap-6">
+                <div className="mx-auto shrink-0 lg:mx-0">
+                  <Donut size={120} segments={donutSegs} center={<div><div className="text-lg md:text-xl font-extrabold" style={{ fontFamily: "var(--font-heading)" }}>{totalPerdas}</div><div className="text-[9px] md:text-[10px] text-meta-navy-50">perdas</div></div>} />
                 </div>
-                <div className="flex flex-1 flex-col gap-2 min-w-0">
-                  {motivosPerda.slice(0, 5).map((m, i) => (
-                    <div key={i} className="flex items-center justify-between text-xs md:text-[13px] gap-2">
-                      <span className="flex items-center gap-2 min-w-0"><span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: palette[i] }} /><span className="truncate">{m.nome}</span></span>
+                <div className="grid w-full flex-1 min-w-0 grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
+                  {motivosPerda.map((m, i) => (
+                    <div key={i} className="flex items-center justify-between gap-2 text-xs md:text-[13px]">
+                      <span className="flex items-center gap-2 min-w-0"><span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: i < 5 ? palette[i] : "#C8CEDC" }} /><span className="truncate" title={m.nome}>{m.nome}</span></span>
                       <b style={{ fontFamily: "var(--font-heading)" }} className="shrink-0">{m.qtd}</b>
                     </div>
                   ))}
@@ -191,7 +200,7 @@ export function ComercialView({
               </div>
             </Card>
           </div>
-          <div className="col-span-4 md:col-span-4 lg:col-span-6">
+          <div className="col-span-4 md:col-span-8 lg:col-span-4">
             <Card title="Resumo do período" sub={periodoLabel}>
               <div className="grid grid-cols-2 gap-3 md:gap-4">
                 <div><div className="text-lg md:text-2xl font-bold" style={{ fontFamily: "var(--font-heading)" }}>{pipelineQtd}</div><div className="muted text-[10px] md:text-[11.5px] text-meta-navy-50">em pipeline ativo</div></div>
