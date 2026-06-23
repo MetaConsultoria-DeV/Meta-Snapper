@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
-type ColConfig = '1-2-3' | '1-2-4' | '4-8-12' | '1-1-2';
+type ColConfig = '1-2-3' | '1-2-4' | '4-8-12' | '1-1-2' | '1-2-5';
 
 interface ResponsiveGridProps {
   children: ReactNode;
@@ -15,6 +15,7 @@ const colMap: Record<ColConfig, string> = {
   '1-2-4': 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4',
   '4-8-12': 'grid-cols-4 md:grid-cols-8 lg:grid-cols-12',
   '1-1-2': 'grid-cols-1 md:grid-cols-1 lg:grid-cols-2',
+  '1-2-5': 'grid-cols-1 md:grid-cols-2 lg:grid-cols-5',
 };
 
 const gapMap = {

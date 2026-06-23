@@ -32,6 +32,15 @@ export function FinanceiroView({
   const totalEntradas = fluxo.reduce((s, f) => s + f.entrada, 0);
   const totalSaidas = fluxo.reduce((s, f) => s + f.saida, 0);
   const receita = contratos.reduce((s, c) => s + (c.valor_total ?? 0), 0);
+  const totalAReceber = contratos.reduce((sum, c) => {
+    const total = c.parcelas_total || 0;
+    const pagas = c.parcelas_pagas || 0;
+    const valor = c.valor_total || 0;
+    if (total === 0) return sum;
+    const faltantes = Math.max(0, total - pagas);
+    const valorParcela = valor / total;
+    return sum + (valorParcela * faltantes);
+  }, 0);
   const maxFluxo = Math.max(...fluxo.flatMap((f) => [f.entrada, f.saida]), 1);
   const parcelasAbertas = contratos.reduce((s, c) => s + Math.max(0, c.parcelas_total - c.parcelas_pagas), 0);
 
@@ -51,8 +60,9 @@ export function FinanceiroView({
         description="Leitura integrada entre contratos, clientes e projetos de um lado, e pagamentos, parcelas e transações do outro. De onde vêm e para onde vão os recursos."
       />
 
-      <ResponsiveGrid cols="1-2-4" gap="md" className="mb-3.5">
+      <ResponsiveGrid cols="1-2-5" gap="md" className="mb-3.5">
         <Kpi icon="doc" label="Receita contratada" value={BRL(receita)} note={`${contratos.length} contratos`} />
+        <Kpi icon="dollar" label="A receber" value={BRL(totalAReceber)} note="soma das parcelas em aberto" />
         <Kpi icon="arrowDown" label="Entradas" value={BRL(totalEntradas)} note="no período" />
         <Kpi icon="arrowUp" label="Saídas" value={BRL(totalSaidas)} note="no período" />
         <Kpi icon="finance" label="Resultado" value={BRL(totalEntradas - totalSaidas)} note="entradas − saídas" />
