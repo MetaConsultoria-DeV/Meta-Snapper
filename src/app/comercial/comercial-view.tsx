@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { BRL } from "@/lib/mock-data";
 import type { FunilFaseDTO, OportunidadeDTO, NomeQtdDTO, ClienteComercialDTO } from "@/lib/api/bdu";
 import { PageHeader } from "@/components/page-header";
@@ -11,14 +10,6 @@ import { MetaSelect } from "@/components/dashboard/meta-select";
 import { Icon } from "@/components/dashboard/icon";
 import { ResponsiveGrid } from "@/components/ui/responsive-grid";
 import { AdaptiveTable } from "@/components/ui/adaptive-table";
-import { cn } from "@/lib/utils";
-
-const PERIODOS: { key: string; label: string }[] = [
-  { key: "30d", label: "30 dias" },
-  { key: "trimestre", label: "Trimestre" },
-  { key: "ano", label: "Ano atual" },
-  { key: "tudo", label: "Tudo" },
-];
 
 /** Curadoria das fases cruas do Pipefy → pipeline ativo + estados terminais. */
 type FaseTipo = "ganho" | "perdido" | "postergado" | "ativo";
@@ -36,7 +27,6 @@ export function ComercialView({
   origens,
   motivosPerda,
   clientes,
-  periodo,
   periodoLabel,
 }: {
   funil: FunilFaseDTO[];
@@ -44,7 +34,6 @@ export function ComercialView({
   origens: NomeQtdDTO[];
   motivosPerda: NomeQtdDTO[];
   clientes: ClienteComercialDTO[];
-  periodo: string;
   periodoLabel: string;
 }) {
   const [tab, setTab] = useState<"oportunidades" | "clientes">("oportunidades");
@@ -97,34 +86,15 @@ export function ComercialView({
       <PageHeader
         eyebrow="Comercial & Financeiro"
         title="Comercial, Oportunidades & Clientes"
-        description="O fluxo comercial da Meta de ponta a ponta. Gestão temporal forte: o recorte abaixo protege a leitura atual de dados antigos."
+        description="O fluxo comercial da Meta de ponta a ponta. Use o filtro de período no topo para recortar a leitura."
       />
 
-      {/* RECORTE TEMPORAL */}
-      <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="eyebrow-mini flex items-center gap-1.5 text-meta-navy-50">
-            <Icon name="calendar" size={13} /> Período analisado
-          </span>
-          <div className="period-seg flex overflow-x-auto overflow-y-hidden rounded-[10px] border border-meta-navy-10 bg-white">
-            {PERIODOS.map((p) => (
-              <Link
-                key={p.key}
-                href={`/comercial?periodo=${p.key}`}
-                className={cn(
-                  "border-r border-meta-navy-10 px-2.5 md:px-3 py-3 text-xs md:text-[13px] font-medium last:border-r-0 transition-colors whitespace-nowrap min-h-11",
-                  periodo === p.key ? "bg-meta-navy text-white" : "text-meta-navy-50 hover:bg-meta-paper",
-                )}
-                style={{ fontFamily: "var(--font-heading)" }}
-              >
-                {p.label}
-              </Link>
-            ))}
-          </div>
-        </div>
+      {/* Indicador do recorte global — o controle fica no topo e vale para todas as páginas. */}
+      <div className="mb-6 flex flex-wrap items-center gap-2">
         <span className="inline-flex items-center gap-1.5 rounded-full bg-meta-blue/10 px-3 py-1 text-[12px] font-semibold text-meta-blue">
           <Icon name="checkCircle" size={13} /> Lendo: {periodoLabel}
         </span>
+        <span className="text-[12px] text-meta-navy-50">Ajuste o período no filtro do topo.</span>
       </div>
 
       {/* HEADER: FUNIL ATIVO + TERMINAIS */}

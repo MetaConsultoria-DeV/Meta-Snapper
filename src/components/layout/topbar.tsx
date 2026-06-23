@@ -16,7 +16,6 @@ type TopBarProps = {
 
 /** Páginas onde o recorte global não se aplica (e o porquê, no tooltip). */
 const SEM_RECORTE: Record<string, string> = {
-  "/comercial": "O Comercial usa o seletor de período da própria página",
   "/mapa-pessoas": "Página estrutural — os dados não têm recorte temporal",
   "/projetos": "Projetos não têm datas confiáveis no banco para recortar",
   "/analises": "Os fatos das análises não têm datas para recortar",
