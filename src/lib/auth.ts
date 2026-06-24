@@ -9,25 +9,43 @@ import { SignJWT, jwtVerify } from 'jose';
  * que é seguro tanto no runtime Node quanto no Edge.
  */
 
+/** Key of the session cookie used throughout the application. */
 export const SESSION_COOKIE = 'bdu_session';
 
+/** Default duration for sessions if not customized in env variables. */
 const DEFAULT_SESSION_HOURS = 12;
 
-/** Deriva a chave de assinatura a partir de AUTH_SECRET. `null` = fail-closed. */
+/**
+ * Derives the cryptographic signature key from the AUTH_SECRET environment variable.
+ * Returns null if the secret is missing or too short, leading to fail-closed state.
+ *
+ * @returns {Uint8Array | null} The encoded secret key, or null if invalid/missing.
+ */
 function getSecretKey(): Uint8Array | null {
   const secret = process.env.AUTH_SECRET;
   if (!secret || secret.length < 16) return null;
   return new TextEncoder().encode(secret);
 }
 
-/** Duração da sessão em segundos (AUTH_SESSION_HOURS, padrão 12h). */
+/**
+ * Calculates the maximum age of a session in seconds based on the AUTH_SESSION_HOURS env variable.
+ * Fallbacks to the default of 12 hours if undefined or invalid.
+ *
+ * @returns {number} Max session age in seconds.
+ */
 export function sessionMaxAgeSeconds(): number {
   const raw = Number(process.env.AUTH_SESSION_HOURS);
   const hours = Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_SESSION_HOURS;
   return Math.floor(hours * 3600);
 }
 
-/** Emite um JWT HS256 assinado para a sessão. `null` se AUTH_SECRET ausente. */
+/**
+ * Issues and signs a JWT token using HS256 algorithm.
+ * Sets the subject (username) and expiration duration.
+ *
+ * @param {string} subject - The identifier/subject of the session (typically username).
+ * @returns {Promise<string | null>} The signed JWT token, or null if the signature key is missing.
+ */
 export async function createSession(subject: string): Promise<string | null> {
   const key = getSecretKey();
   if (!key) return null;
@@ -41,7 +59,13 @@ export async function createSession(subject: string): Promise<string | null> {
     .sign(key);
 }
 
-/** Valida o token da sessão. `false` em qualquer erro/expiração/segredo ausente. */
+/**
+ * Verifies the validity of the provided session JWT token.
+ * Returns false if token is expired, tampered with, or if the server key is missing.
+ *
+ * @param {string | undefined} token - The session token retrieved from cookies.
+ * @returns {Promise<boolean>} Resolves to true if verified successfully, otherwise false.
+ */
 export async function verifySession(token: string | undefined): Promise<boolean> {
   if (!token) return false;
   const key = getSecretKey();
@@ -54,7 +78,14 @@ export async function verifySession(token: string | undefined): Promise<boolean>
   }
 }
 
-/** Opções padrão do cookie. `secure` só em produção (permite http://localhost). */
+/**
+ * Returns standard configuration options for setting the HTTP cookie.
+ * Secure flag is enforced in production to ensure cookie is only sent over HTTPS.
+ * SameSite lax is set to mitigate CSRF attacks.
+ *
+ * @param {number} maxAge - The maximum age of the cookie in seconds.
+ * @returns {object} The cookie options object.
+ */
 export function cookieOptions(maxAge: number) {
   return {
     httpOnly: true,
@@ -66,8 +97,12 @@ export function cookieOptions(maxAge: number) {
 }
 
 /**
- * Garante que o redirecionamento pós-login é um caminho relativo seguro.
- * Bloqueia URLs absolutas, protocol-relative (`//`) e truques com `\` — anti open-redirect.
+ * Validates the next redirect path to prevent open redirect vulnerabilities.
+ * Sanitizes input to ensure it is a relative path starting with a single '/'
+ * and does not contain protocol-relative prefix '//' or backslashes.
+ *
+ * @param {string | null | undefined} next - The requested redirect path.
+ * @returns {string} A safe relative redirect URL, defaults to '/'.
  */
 export function safeNextPath(next: string | null | undefined): string {
   if (!next || typeof next !== 'string') return '/';

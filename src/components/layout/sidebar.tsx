@@ -6,6 +6,14 @@ import { usePathname } from "next/navigation";
 import { NAV } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 
+/**
+ * Sidebar navigation component displayed on medium and larger viewports.
+ * Automatically supports collapsing width animations, active route state highlighting, and status badges.
+ *
+ * @param {Object} props - Component properties.
+ * @param {boolean} props.collapsed - If true, collapses width to display only icon identifiers.
+ * @returns {JSX.Element} The rendered Sidebar component.
+ */
 export function Sidebar({ collapsed }: { collapsed: boolean }) {
   const pathname = usePathname();
 

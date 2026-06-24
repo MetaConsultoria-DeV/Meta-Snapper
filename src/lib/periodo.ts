@@ -8,21 +8,44 @@
  * próprio (?periodo=) e ignora este recorte.
  */
 
+/** Supported period keys for temporal data analysis. */
 export type PeriodoKey = "30d" | "sem1" | "sem2" | "ano" | "tudo" | "custom";
+
+/** Represents a period selection configuration. */
 export type Periodo = { key: PeriodoKey; de?: string; ate?: string };
+
+/** Resulting date boundaries in ISO format (YYYY-MM-DD) for database filters. */
 export type PeriodoRange = { data_inicio?: string; data_fim?: string };
 
+/** Cookie name used to persist the selected global period. */
 export const PERIODO_COOKIE = "bdu_periodo";
+
+/** Default fallback period. */
 export const PERIODO_PADRAO: Periodo = { key: "tudo" };
 
+/** Formats a date object to ISO YYYY-MM-DD. */
 const iso = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
+/**
+ * Serializes a Periodo object into a string suitable for cookie storage.
+ * Custom ranges are serialized as `custom:from_date:to_date`.
+ *
+ * @param {Periodo} p - The period config.
+ * @returns {string} The serialized string representation.
+ */
 export function serializePeriodo(p: Periodo): string {
   if (p.key === "custom") return `custom:${p.de ?? ""}:${p.ate ?? ""}`;
   return p.key;
 }
 
+/**
+ * Parses a serialized period string back into a typed Periodo object.
+ * Fallbacks to PERIODO_PADRAO if string is invalid or incomplete.
+ *
+ * @param {string | undefined | null} raw - The serialized period cookie value.
+ * @returns {Periodo} The parsed Periodo object.
+ */
 export function parsePeriodo(raw: string | undefined | null): Periodo {
   if (!raw) return PERIODO_PADRAO;
   if (raw.startsWith("custom:")) {
@@ -34,18 +57,36 @@ export function parsePeriodo(raw: string | undefined | null): Periodo {
   return PERIODO_PADRAO;
 }
 
-/** Semestre corrente: 26.1 até 30/06, 26.2 de 01/07 em diante. */
+/**
+ * Returns the current active semester ('sem1' or 'sem2') based on the calendar month.
+ *
+ * @param {Date} [hoje=new Date()] - Date reference (defaults to current local date).
+ * @returns {"sem1" | "sem2"} The active semester key.
+ */
 export function semestreAtual(hoje = new Date()): "sem1" | "sem2" {
   return hoje.getMonth() + 1 <= 6 ? "sem1" : "sem2";
 }
 
-/** Rótulos calculados do ano corrente: { sem1: "26.1", sem2: "26.2", ano: "2026" }. */
+/**
+ * Generates display text labels for semesters and year reference.
+ *
+ * @param {Date} [hoje=new Date()] - Date reference.
+ * @returns {{ sem1: string; sem2: string; ano: string }} Labels map (e.g. { sem1: "26.1", sem2: "26.2", ano: "2026" }).
+ */
 export function periodoLabels(hoje = new Date()) {
   const ano = hoje.getFullYear();
   const yy = String(ano % 100).padStart(2, "0");
   return { sem1: `${yy}.1`, sem2: `${yy}.2`, ano: String(ano) };
 }
 
+/**
+ * Translates a Periodo selection configuration into ISO YYYY-MM-DD date boundaries.
+ * Custom range uses stored boundary strings directly.
+ *
+ * @param {Periodo} p - The period config.
+ * @param {Date} [hoje=new Date()] - Date reference.
+ * @returns {PeriodoRange} The resolved date boundaries.
+ */
 export function rangePeriodo(p: Periodo, hoje = new Date()): PeriodoRange {
   const ano = hoje.getFullYear();
   switch (p.key) {

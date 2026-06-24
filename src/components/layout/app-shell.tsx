@@ -22,9 +22,13 @@ const lerCookie = () =>
     ?.slice(PERIODO_COOKIE.length + 1) ?? "";
 
 /**
- * Shell global da aplicação: Sidebar + TopBar + área de conteúdo.
- * Trocar o período grava o cookie e dá router.refresh() para as páginas
- * (Server Components) re-buscarem com o novo recorte.
+ * Global application layout shell.
+ * Renders the responsive menus Sidebar, mobile drawer overlay, top Header (TopBar), and scrollable content canvas.
+ * Manages global temporal states via cookie mutations and page revalidation requests.
+ *
+ * @param {Object} props - Component properties.
+ * @param {React.ReactNode} props.children - Route view component to render inside the main canvas.
+ * @returns {JSX.Element} The rendered global layout structure.
  */
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);

@@ -6,88 +6,236 @@
  * TEMPORÁRIO (Phase 2/3): substituído por dados reais da API FastAPI na Phase 5.
  */
 
+/**
+ * Formats a numeric value into a Brazilian Real currency string.
+ *
+ * @param {number} n - The raw numeric amount.
+ * @returns {string} The formatted BRL currency string (e.g. "R$ 15.000").
+ */
 export const BRL = (n: number) =>
   "R$ " + n.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
-export type Coordenacao = { id: string; nome: string; tema: string; cor: string };
-export type Celula = { id: string; nome: string; membros: number };
-export type Cargo = { id: string; nome: string; nivel: number };
-export type Servico = { id: string; nome: string; coord: string; projetos: number; opp: number };
-export type Cliente = {
+/** Represents a Coordination Area within the enterprise. */
+export type Coordenacao = {
+  /** Unique ID (e.g., 'C-A'). */
   id: string;
+  /** Designation name of the coordination division. */
   nome: string;
-  segmento: string;
-  desde: number;
+  /** Primary focus theme/specialty. */
+  tema: string;
+  /** Associated visual hex color code. */
+  cor: string;
+};
+
+/** Represents an organizational Cell with members. */
+export type Celula = {
+  /** Unique cell ID (e.g., 'CEL-1'). */
+  id: string;
+  /** Cell name designation. */
+  nome: string;
+  /** Cumulative count of members allocated to this cell. */
+  membros: number;
+};
+
+/** Represents a career hierarchy title. */
+export type Cargo = {
+  /** Cargo identifier. */
+  id: string;
+  /** Title label. */
+  nome: string;
+  /** Career index level (e.g., 1 for Directors, 6 for Trainees). */
+  nivel: number;
+};
+
+/** Represents a commercial catalog service item. */
+export type Servico = {
+  /** Catalog service ID. */
+  id: string;
+  /** Service designation name. */
+  nome: string;
+  /** Direct coordinator owner ID. */
+  coord: string;
+  /** Cumulative projects delivered for this service. */
   projetos: number;
+  /** Active opportunities in the sales pipeline for this service. */
+  opp: number;
+};
+
+/** Represents an registered client organization. */
+export type Cliente = {
+  /** Client registry ID. */
+  id: string;
+  /** Company/organization name. */
+  nome: string;
+  /** Market segment category. */
+  segmento: string;
+  /** Calendar year when the partnership started. */
+  desde: number;
+  /** Count of signed projects. */
+  projetos: number;
+  /** Total value sum of contracts. */
   receita: number;
 };
+
+/** Represents an active member of the company. */
 export type Membro = {
+  /** Unique member ID. */
   id: string;
+  /** First and last name. */
   nome: string;
+  /** Associated cargo type ID. */
   cargo: string;
+  /** Title of the role. */
   cargoNome: string;
+  /** Target cell department ID. */
   celula: string;
+  /** Associated coordination level ID. */
   coord: string;
+  /** List of project IDs this member is allocated to. */
   projetos: string[];
+  /** Whether the member works transversal projects across multiple cells. */
   transversal: boolean;
+  /** Active allocation state. */
   ativo: boolean;
+  /** Year of enrollment. */
   entrada: string;
 };
+
+/** Represents a tracked project delivery. */
 export type Projeto = {
+  /** Unique project code. */
   id: string;
+  /** Project naming. */
   nome: string;
+  /** Raw status tag ('ativo', 'concluido', 'risco', 'pausado'). */
   status: string;
+  /** User-facing display status description. */
   statusLabel: string;
+  /** Style/color class associated with status. */
   statusCls: string;
+  /** Owner coordination area ID. */
   coord: string;
+  /** Client registry ID. */
   cliente: string;
+  /** Financial contract value. */
   valor: number;
+  /** Delivery completion percentage (0 - 100). */
   progresso: number;
+  /** Allocated member IDs. */
   equipe: string[];
+  /** Associated catalog services IDs. */
   servicos: string[];
+  /** Whether this project is linked to a signed contract. */
   temContrato: boolean;
+  /** Number of monitoring touchpoints completed. */
   acompanhamentos: number;
+  /** Project launch month. */
   inicio: string;
+  /** Target deadline month. */
   prazo: string;
+  /** Health status evaluation ('ok' or 'atencao'). */
   saude: string;
 };
-export type Fase = { id: string; nome: string; qtd: number; valor: number };
-export type Origem = { nome: string; qtd: number; cor: string };
-export type MotivoPerda = { nome: string; qtd: number };
-export type Oportunidade = {
+
+/** Sales funnel stage representation. */
+export type Fase = {
+  /** Funnel stage ID. */
   id: string;
-  cliente: string;
-  coord: string;
-  servico: string;
-  fase: string;
+  /** Funnel stage designation. */
+  nome: string;
+  /** Cumulative opportunities count. */
+  qtd: number;
+  /** Sum currency value in BRL. */
   valor: number;
+};
+
+/** Origin channel count. */
+export type Origem = {
+  /** Origin source name. */
+  nome: string;
+  /** Opportunity count. */
+  qtd: number;
+  /** Associated brand palette hex color. */
+  cor: string;
+};
+
+/** Reason for lost opportunity count. */
+export type MotivoPerda = {
+  /** Loss reason category. */
+  nome: string;
+  /** Count of lost deals. */
+  qtd: number;
+};
+
+/** Sales pipeline opportunity. */
+export type Oportunidade = {
+  /** Unique opportunity code. */
+  id: string;
+  /** Client registry ID. */
+  cliente: string;
+  /** Owner coordination ID. */
+  coord: string;
+  /** Target catalog service ID. */
+  servico: string;
+  /** Current active stage. */
+  fase: string;
+  /** Estimated deal value. */
+  valor: number;
+  /** Acquisition source channel. */
   origem: string;
+  /** Creation month string. */
   criada: string;
+  /** True if registered in previous cycles. */
   antiga: boolean;
+  /** Specific reason for cancellation, if lost. */
   motivoPerda: string | null;
 };
+
+/** Signed project contract metrics. */
 export type Contrato = {
+  /** Contract registry ID. */
   id: string;
+  /** Target project ID. */
   projeto: string;
+  /** Client ID. */
   cliente: string;
+  /** Owner coordination ID. */
   coord: string;
+  /** Financial valuation. */
   valor: number;
+  /** Payment method type (e.g. 'À vista', 'Parcelado'). */
   forma: string;
+  /** Installment total count. */
   parcelasTot: number;
+  /** Paid installments count. */
   parcelasPagas: number;
+  /** Unpaid installments count. */
   parcelasPendentes: number;
+  /** Status tag ('quitado', 'em-dia', 'aberto'). */
   status: string;
+  /** Signed date month. */
   assinado: string;
 };
+
+/** Financial transaction record. */
 export type Transacao = {
+  /** Transaction transaction ID. */
   id: string;
+  /** Cash flow direction ('entrada' or 'saida'). */
   tipo: "entrada" | "saida";
+  /** Valuation. */
   valor: number;
+  /** Target category. */
   categoria: string;
+  /** Operating bank account. */
   conta: string;
+  /** Associated contract ID, if any. */
   contrato: string | null;
+  /** Associated project ID, if any. */
   projeto: string | null;
+  /** Associated client ID, if any. */
   cliente: string | null;
+  /** Recorded date string. */
   data: string;
 };
 
@@ -313,23 +461,44 @@ const totalEntradas = transacoes.filter((t) => t.tipo === "entrada").reduce((s, 
 const totalSaidas = transacoes.filter((t) => t.tipo === "saida").reduce((s, t) => s + t.valor, 0);
 const receitaContratada = contratos.reduce((s, c) => s + c.valor, 0);
 
+/**
+ * Consolidated mock database representing the relational dataset of the enterprise.
+ * Serves as a single source of truth for dummy data query mapping in early phases.
+ */
 export const DB = {
+  /** List of coordination divisions. */
   coordenacoes,
+  /** List of cell departments. */
   celulas,
+  /** List of hierarchy cargo titles. */
   cargos,
+  /** List of service catalog offerings. */
   servicos,
+  /** List of clients. */
   clientes,
+  /** List of members. */
   membros,
+  /** List of projects. */
   projetos,
+  /** List of funnel stages. */
   fases,
+  /** List of marketing/lead sources. */
   origens,
+  /** List of loss reason statistics. */
   motivosPerda,
+  /** List of opportunities. */
   oportunidades,
+  /** List of contracts. */
   contratos,
+  /** List of financial transactions. */
   transacoes,
+  /** Bank accounts. */
   contas,
+  /** Incoming revenue categories. */
   categoriasIn,
+  /** Outgoing expense categories. */
   categoriasOut,
+  /** Aggregated KPI counters. */
   resumo: {
     membrosAtivos: membros.filter((m) => m.ativo).length,
     membrosTotal: membros.length,
@@ -348,11 +517,18 @@ export const DB = {
     servicoCount: servicos.length,
     contratoCount: contratos.length,
   },
+  /** Resolves a coordination name by its ID. */
   nomeCoord: (id: string) => coordenacoes.find((c) => c.id === id)?.nome ?? id,
+  /** Resolves a coordination color by its ID. */
   corCoord: (id: string) => coordenacoes.find((c) => c.id === id)?.cor ?? "#6B7299",
+  /** Resolves a cell name by its ID. */
   nomeCelula: (id: string) => celulas.find((c) => c.id === id)?.nome ?? id,
+  /** Resolves a client name by its ID. */
   nomeCliente: (id: string) => clientes.find((c) => c.id === id)?.nome ?? id,
+  /** Resolves a service name by its ID. */
   nomeServico: (id: string) => servicos.find((s) => s.id === id)?.nome ?? id,
+  /** Resolves a project name by its ID. */
   nomeProjeto: (id: string) => projetos.find((p) => p.id === id)?.nome ?? id,
+  /** Resolves a cargo name by its ID. */
   nomeCargo: (id: string) => cargos.find((c) => c.id === id)?.nome ?? id,
 };

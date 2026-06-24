@@ -11,8 +11,15 @@
  *
  * Tipos do contrato real da API ficam em `@/types`.
  */
+/** Re-exported mock database utilities for visual prototypes. */
 export { DB, BRL } from "./mock-data";
+
+/** Re-exported static SETTA organizational structure and associated meta configurations. */
 export { ORG, tipoMeta } from "./org-data";
 
-/** Sinaliza a fonte ativa (útil para banners de "dados de exemplo"). */
+/**
+ * Signals the active data source for pages.
+ * - 'mock': Uses mock-data.ts datasets.
+ * - 'api': Retrieves data from live FastAPI server endpoints.
+ */
 export const DATA_SOURCE: "mock" | "api" = "mock";

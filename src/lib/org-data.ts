@@ -4,39 +4,85 @@
  * TEMPORÁRIO: substituída por dados reais (membros/cargos/células) na Phase 5.
  */
 
+/**
+ * Represents the hierarchical level/role type of a node in the organization.
+ * - director: Executive level leadership.
+ * - manager: Mid-level management or head of specific domains.
+ * - coord: Operational coordination or analysts.
+ * - pmo: Project Management Office representative.
+ * - staff: Technical support, operational staff, advisors.
+ * - group: A collection of individuals grouped as a single node (e.g. consultants).
+ */
 export type OrgNodeType = "director" | "manager" | "coord" | "pmo" | "staff" | "group";
 
+/**
+ * Represents a node in the organizational tree.
+ * Nodes can form recursive structures through the `children` property.
+ */
 export type OrgNode = {
+  /** The hierarchy level of this node. */
   type: OrgNodeType;
+  /** The professional title/role name. */
   role: string;
+  /** The name of the member occupying this position. Use '—' if vacant. */
   name: string;
+  /** Additional detail, description, or specialties of this node. */
   detail?: string;
+  /** Child nodes nested under this position. */
   children?: OrgNode[];
 };
 
+/**
+ * Represents a department cell ("Célula") in the organization.
+ * Contains information about the cell's director, description, and internal hierarchy tree.
+ */
 export type OrgCelula = {
+  /** Unique identifier of the cell. */
   id: string;
+  /** User-friendly name of the cell. */
   nome: string;
+  /** Codename or symbol of the cell mascot. */
   mascot: string;
+  /** Hex color code associated with the cell's brand identity. */
   cor: string;
+  /** A paragraph describing the cell's goals, focus area, and responsibilities. */
   desc: string;
+  /** The director leading this cell. */
   diretor: { role: string; name: string; detail?: string };
+  /** The hierarchy tree of nodes nested under the director. */
   tree: OrgNode[];
+  /** Count of active individuals in the cell (headcount). */
   headcount: number;
+  /** Total number of positions in the cell structure. */
   posicoes: number;
 };
 
+/**
+ * Flat representation of a position in the organization, flattened from the recursive trees.
+ * Ideal for search, filtering, and table layouts.
+ */
 export type Posicao = {
+  /** The ID of the cell containing this position. */
   cel: string;
+  /** The name of the cell containing this position. */
   celNome: string;
+  /** The brand color of the cell. */
   cor: string;
+  /** The mascot symbol of the cell. */
   mascot: string;
+  /** The node type/level. */
   tipo: OrgNodeType;
+  /** The role title. */
   role: string;
+  /** The name of the occupant(s). */
   name: string;
+  /** Detail or descriptions. */
   detail: string;
+  /** The area/cell name. */
   area: string;
+  /** Whether this position represents a group of consultants instead of an individual. */
   isGroup: boolean;
+  /** Total headcount of people active in this specific role. */
   headcount: number;
 };
 
@@ -146,6 +192,9 @@ const celulasRaw: Omit<OrgCelula, "headcount" | "posicoes">[] = [
   },
 ];
 
+/**
+ * Metadata map detailing presentation labels and theme colors for each position level.
+ */
 export const tipoMeta: Record<OrgNodeType, { label: string; cor: string }> = {
   director: { label: "Diretoria", cor: "#2AD8FF" },
   pmo: { label: "PMO", cor: "#F5A623" },
@@ -155,6 +204,16 @@ export const tipoMeta: Record<OrgNodeType, { label: string; cor: string }> = {
   group: { label: "Equipe / Consultores", cor: "#9aa3bf" },
 };
 
+/**
+ * Recursively traverses the OrgNode hierarchy tree, flattening it into the Posicao array.
+ * Calculates headcount based on delimiter split ("·") and tracks child-level operational areas.
+ *
+ * @param {OrgNode} node - The current node to process.
+ * @param {Omit<OrgCelula, "headcount" | "posicoes">} cel - The associated cell containing the node.
+ * @param {Posicao[]} acc - The accumulator array where flattened positions are pushed.
+ * @param {string} area - The inherited or active department/sub-area.
+ * @returns {void}
+ */
 function walk(node: OrgNode, cel: Omit<OrgCelula, "headcount" | "posicoes">, acc: Posicao[], area: string) {
   const isNamed = node.name && node.name !== "—";
   acc.push({
@@ -167,6 +226,7 @@ function walk(node: OrgNode, cel: Omit<OrgCelula, "headcount" | "posicoes">, acc
   (node.children || []).forEach((c) => walk(c, cel, acc, childArea));
 }
 
+/** Flattened list of all organizational positions. */
 const posicoes: Posicao[] = [];
 celulasRaw.forEach((cel) => {
   posicoes.push({
@@ -177,22 +237,35 @@ celulasRaw.forEach((cel) => {
   cel.tree.forEach((n) => walk(n, cel, posicoes, cel.nome));
 });
 
+/** Total count of active members within all cells. */
 const headcountTotal = posicoes.reduce((s, p) => s + p.headcount, 0);
+
+/** Total count of leaders (directors, managers, coordinators, PMO). */
 const lideranca = posicoes.filter(
   (p) => ["director", "manager", "pmo", "coord"].includes(p.tipo) && p.name !== "—",
 ).length;
+
+/** Total count of coordination-level roles. */
 const coordCount = posicoes.filter((p) => p.tipo === "coord" && p.role.includes("·")).length;
 
+/** Enriched cell list containing compiled counts of headcount and positions. */
 const celulas: OrgCelula[] = celulasRaw.map((cel) => ({
   ...cel,
   headcount: posicoes.filter((p) => p.cel === cel.id).reduce((s, p) => s + p.headcount, 0),
   posicoes: posicoes.filter((p) => p.cel === cel.id).length,
 }));
 
+/**
+ * Unified organizational database representing the SETTA organizational structure.
+ */
 export const ORG = {
+  /** Array of cells with calculated headcount and position metrics. */
   celulas,
+  /** Flat array of all positions in the organization. */
   posicoes,
+  /** Label and color metadata per position type. */
   tipoMeta,
+  /** Organizational summary indicators. */
   resumo: {
     celulas: celulas.length,
     headcountTotal,
@@ -202,5 +275,5 @@ export const ORG = {
   },
 };
 
-/** Shape serializável do ORG, para passar de Server → Client Component. */
+/** Serializable type shape of the ORG object, ideal for Server to Client props serialization. */
 export type Org = typeof ORG;

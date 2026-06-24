@@ -9,6 +9,20 @@ import { Icon } from "@/components/dashboard/icon";
 import { ResponsiveGrid } from "@/components/ui/responsive-grid";
 import { AdaptiveTable } from "@/components/ui/adaptive-table";
 
+/**
+ * Represents a structured row of dimensional project-member fact data.
+ * @typedef {Object} Fact
+ * @property {number} projetoId - Unique project identifier.
+ * @property {string} projeto - Desambiguated project name.
+ * @property {number} valor - Project monetary contract budget value.
+ * @property {number | null} membroId - Member allocated identifier.
+ * @property {string} coord - Coordination name or fallback.
+ * @property {string} cliente - Client name.
+ * @property {string} cargo - Member role/title.
+ * @property {string} membro - Member name.
+ * @property {string} celula - Cell name.
+ * @property {string} status - Project execution status.
+ */
 type Fact = {
   projetoId: number;
   projeto: string;
@@ -21,11 +35,32 @@ type Fact = {
   celula: string;
   status: string;
 };
+
+/**
+ * Represents a cross-aggregation node cell inside the matrix.
+ * Tracks distinct project IDs, member IDs, exact values per project, and a brute count.
+ * @typedef {Object} Cell
+ * @property {Set<number>} proj - Distinct project IDs set.
+ * @property {Set<number>} mem - Distinct member IDs set.
+ * @property {Map<number, number>} valor - Project ID mapped to contract values.
+ * @property {number} count - Cumulative records count.
+ */
 type Cell = { proj: Set<number>; mem: Set<number>; valor: Map<number, number>; count: number };
+
+/**
+ * Represents a compiled row inside the aggregation matrix.
+ * Contains row key label, row value total, and cell lookup mapping for each B dimension key.
+ * @typedef {Object} ARow
+ * @property {string} a - Dimension A row label key.
+ * @property {number} total - Row total aggregated metric value.
+ * @property {Map<string, Cell>} row - Map representing cells for B dimension columns.
+ */
 type ARow = { a: string; total: number; row: Map<string, Cell> };
 
-// Dimensões limitadas ao que está populado no banco (ver contexto-banco-agent):
-// projeto_servico está vazia (sem dimensão Serviço) e a célula vem do membro alocado.
+/**
+ * Allowed cross dimensions options matching the database attributes.
+ * @type {readonly { id: string; label: string }[]}
+ */
 const DIMS = [
   { id: "coord", label: "Coordenação" },
   { id: "projeto", label: "Projeto" },
@@ -35,6 +70,11 @@ const DIMS = [
   { id: "celula", label: "Célula" },
   { id: "status", label: "Status" },
 ] as const;
+
+/**
+ * Metric options representing visual measurements.
+ * @type {readonly { id: string; label: string }[]}
+ */
 const METRICS = [
   { id: "projetos", label: "Nº de projetos" },
   { id: "valor", label: "Valor (R$)" },
@@ -42,29 +82,38 @@ const METRICS = [
   { id: "registros", label: "Nº de vínculos" },
 ] as const;
 
-// Dimensões em que o valor de contrato NÃO duplica nem some: cada projeto cai num
-// único balde (1 cliente, 1 status, ele mesmo). Coordenação/membro/cargo/célula vêm
-// de membro_projeto (N por projeto) → somar valor ali infla, e coord ainda perde os
-// projetos só-contrato sem equipe alocada.
+/**
+ * Dimensions where project value sum does not inflate or duplicate:
+ * each project maps to one single client, status, or project node.
+ * For other dimensions (like members or coordination), projects can duplicate or lose contract values.
+ * @type {Set<string>}
+ */
 const VALOR_DIMS = new Set(["projeto", "cliente", "status"]);
 
 /**
- * Métricas que fazem sentido para a dimensão A escolhida (o eixo que a leitura mede).
- * Trava as combinações degeneradas/enganosas (ver análise do banco):
- *  - "Nº de projetos" some quando A=Projeto (todo nó valeria 1);
- *  - "Nº de membros" some quando A=Membro (idem);
- *  - "Valor" só por Projeto/Cliente/Status (nas demais ele duplica ou subconta).
+ * Filters the list of metrics suitable for the chosen row dimension A.
+ * Restricts misleading combinations:
+ *  - "Nº de projetos" is hidden when dimension A is Project (every project node count would be 1).
+ *  - "Nº de membros" is hidden when dimension A is Member (every member node count would be 1).
+ *  - "Valor" is allowed only for Project, Client, or Status dimensions to avoid inflated duplicates.
+ *
+ * @function metricsFor
+ * @param {string} dimA - Chosen row dimension A.
+ * @returns {typeof METRICS[number][]} Slipped list of compatible metrics.
  */
 function metricsFor(dimA: string) {
   return METRICS.filter((m) => {
     if (m.id === "projetos") return dimA !== "projeto";
     if (m.id === "membros") return dimA !== "membro";
     if (m.id === "valor") return VALOR_DIMS.has(dimA);
-    return true; // registros: contagem bruta, sempre válida
+    return true; // registros: brute row connections, always valid
   });
 }
 
-/** Explica o que a métrica ativa mede, para não restar dúvida na leitura. */
+/**
+ * Contextual description tips displayed below dimensions selector to explain metrics behavior.
+ * @type {Record<string, string>}
+ */
 const METRIC_HINT: Record<string, string> = {
   projetos: "Conta projetos distintos (cada contrato uma única vez).",
   membros: "Conta pessoas distintas alocadas.",
@@ -72,9 +121,23 @@ const METRIC_HINT: Record<string, string> = {
   registros: "Conta vínculos projeto–pessoa (linhas brutas).",
 };
 
+/**
+ * Factory helper instantiating a blank Cell object.
+ *
+ * @function newCell
+ * @returns {Cell} Instantiated Cell.
+ */
 function newCell(): Cell {
   return { proj: new Set(), mem: new Set(), valor: new Map(), count: 0 };
 }
+
+/**
+ * Adds a fact row record to a Cell, tracking unique IDs and values.
+ *
+ * @function addFact
+ * @param {Cell} cell - Target cell object.
+ * @param {Fact} f - Fact data row.
+ */
 function addFact(cell: Cell, f: Fact) {
   cell.proj.add(f.projetoId);
   if (f.membroId !== null) cell.mem.add(f.membroId);
@@ -83,9 +146,16 @@ function addFact(cell: Cell, f: Fact) {
 }
 
 /**
- * Agrega fatos em matriz A × B mais células de união por linha/coluna.
- * Identidade por id (projeto/membro): nomes duplicados não se fundem e os
- * totais contam cada projeto uma única vez (sem somar o mesmo contrato N vezes).
+ * Compiles and aggregates flat fact rows into a two-dimensional matrix (A x B).
+ * Computes marginal totals for rows and columns, ensuring unique entity counting
+ * (e.g. project budget values do not sum duplicates).
+ *
+ * @function aggregate
+ * @param {Fact[]} facts - List of filtered flat fact rows.
+ * @param {string} dimA - Chosen row dimension attribute.
+ * @param {string} dimB - Chosen column dimension attribute.
+ * @param {string} metric - Target metric identifier.
+ * @returns {Object} Compiled matrix.
  */
 function aggregate(facts: Fact[], dimA: string, dimB: string, metric: string) {
   const matrix = new Map<string, Map<string, Cell>>();
@@ -114,9 +184,19 @@ function aggregate(facts: Fact[], dimA: string, dimB: string, metric: string) {
   return { matrix, rowCells, colCells, val };
 }
 
+/**
+ * AnalisesView Component
+ * Main container for cross-dimensional analysis dashboards.
+ * Renders dimension selector constructors, view mode controls, quick layout templates,
+ * and three visualizers (GraphView network, PivotView cross-table, and CompareView columns).
+ *
+ * @component
+ * @param {Object} props - Component props.
+ * @param {FactDTO[]} props.facts - List of raw flat database records.
+ */
 export function AnalisesView({ facts: raw }: { facts: FactDTO[] }) {
+  // Memoize and desambigue duplicate project names by appending IDs
   const facts = useMemo<Fact[]>(() => {
-    // Há projetos distintos com o mesmo nome no banco; desambigua com o id.
     const idsPorNome = new Map<string, Set<number>>();
     raw.forEach((f) => {
       if (!idsPorNome.has(f.projeto)) idsPorNome.set(f.projeto, new Set());
@@ -136,33 +216,66 @@ export function AnalisesView({ facts: raw }: { facts: FactDTO[] }) {
     }));
   }, [raw]);
 
+  /**
+   * Chosen dimension A for rows/left-nodes.
+   * @type {string}
+   */
   const [dimA, setDimA] = useState("coord");
+
+  /**
+   * Chosen dimension B for columns/right-nodes.
+   * @type {string}
+   */
   const [dimB, setDimB] = useState("membro");
+
+  /**
+   * Chosen metric measurement key.
+   * @type {string}
+   */
   const [metric, setMetric] = useState("projetos");
+
+  /**
+   * Selected layout visualizer mode.
+   * Can be 'grafo', 'pivot', or 'cards'.
+   * @type {"grafo" | "pivot" | "cards"}
+   */
   const [view, setView] = useState<"grafo" | "pivot" | "cards">("grafo");
+
+  /**
+   * Filter technical coordination select option.
+   * @type {string}
+   */
   const [fCoord, setFCoord] = useState("todos");
+
+  /**
+   * Node index selection focus in GraphView.
+   * @type {{ side: "a" | "b"; i: number } | null}
+   */
   const [sel, setSel] = useState<{ side: "a" | "b"; i: number } | null>(null);
 
-  // Seleção é por índice; mudar dimensão/métrica/filtro reordena os nós.
+  // Selector callback wrapper resetting selection states
   const pick = (set: (v: string) => void) => (v: string) => {
     set(v);
     setSel(null);
   };
 
-  // Trocar o eixo A pode invalidar a métrica atual → cai para a primeira válida.
+  // Change dimension A and validate metric compatibility (falls back if invalid)
   const changeDimA = (v: string) => {
     setSel(null);
     setDimA(v);
     const validas = metricsFor(v);
     if (!validas.some((m) => m.id === metric)) setMetric(validas[0].id);
   };
+
   const metricOptions = metricsFor(dimA);
 
+  // Extract unique sorted list of coordinations for filtering options
   const coordOptions = useMemo(
     () => ["todos", ...[...new Set(facts.map((f) => f.coord))].filter((c) => c !== "—").sort()],
     [facts],
   );
 
+  // Apply coordination filter
   const filtered = facts.filter((f) => fCoord === "todos" || f.coord === fCoord);
 
   const dimAmeta = DIMS.find((d) => d.id === dimA)!;
@@ -170,12 +283,17 @@ export function AnalisesView({ facts: raw }: { facts: FactDTO[] }) {
   const metricMeta = METRICS.find((x) => x.id === metric)!;
   const fmt = (v: number) => (metric === "valor" ? BRL(v) : String(v));
 
+  // Compute aggregation outputs
   const agg = aggregate(filtered, dimA, dimB, metric);
   const val = agg.val;
+
+  // Derive row structures and sort by total descending
   const aTotals: ARow[] = [...agg.matrix.entries()]
     .map(([a, row]) => ({ a, total: val(agg.rowCells.get(a)), row }))
     .filter((x) => x.a !== "—")
     .sort((x, y) => y.total - x.total);
+
+  // Derive column structures and sort by total descending
   const bTotals = [...agg.colCells.entries()]
     .filter(([b]) => b !== "—")
     .map(([b, cell]) => ({ b, t: val(cell) }))
@@ -192,26 +310,33 @@ export function AnalisesView({ facts: raw }: { facts: FactDTO[] }) {
         </p>
       </header>
 
+      {/* Control builder panel card */}
       <div className="card card--pad mb-4 md:mb-6" style={{ background: "linear-gradient(180deg,#fff,#fbfcff)" }}>
         <div className="flex flex-col gap-4 md:gap-0 md:flex-wrap md:items-center md:justify-between">
           <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center">
             <span className="eyebrow-mini flex items-center gap-1.5 text-xs md:text-sm"><Icon name="sliders" size={13} />Construtor</span>
             <div className="flex flex-wrap items-center gap-2 md:gap-1">
               <span className="badge badge--info text-xs">A</span>
+              {/* Select dimension A */}
               <MetaSelect value={dimA} onChange={changeDimA} options={DIMS.filter((d) => d.id !== dimB).map((d) => [d.id, d.label] as [string, string])} />
               <span className="flowarrow hidden md:inline"><Icon name="arrowRight" size={18} /></span>
               <span className="badge badge--neutral text-xs">B</span>
+              {/* Select dimension B */}
               <MetaSelect value={dimB} onChange={pick(setDimB)} options={DIMS.filter((d) => d.id !== dimA).map((d) => [d.id, d.label] as [string, string])} />
               <span style={{ width: 1, height: 26, background: "var(--meta-navy-10)", margin: "0 4px" }} className="hidden md:inline-block" />
               <span className="eyebrow-mini text-xs md:text-sm">Métrica</span>
+              {/* Select metric */}
               <MetaSelect value={metric} onChange={pick(setMetric)} options={metricOptions.map((x) => [x.id, x.label] as [string, string])} />
             </div>
           </div>
+          {/* Coordination Filter select */}
           <div className="flex flex-wrap items-center gap-2 md:ml-auto">
             <span className="eyebrow-mini flex items-center gap-1.5 text-xs md:text-sm"><Icon name="filter" size={12} />Filtro</span>
             <MetaSelect value={fCoord} onChange={pick(setFCoord)} options={coordOptions.map((c) => [c, c === "todos" ? "Toda coord." : c] as [string, string])} />
           </div>
         </div>
+
+        {/* Selected visual mapping state summary */}
         <div className="mt-4 md:mt-3.5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-2 border-t border-meta-navy-10 pt-4 md:pt-3.5">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs md:text-[13px] text-meta-navy-50">Lendo</span>
@@ -221,22 +346,26 @@ export function AnalisesView({ facts: raw }: { facts: FactDTO[] }) {
             <span className="text-xs md:text-[13px] text-meta-navy-50">por</span>
             <span className="badge badge--info text-xs">{metricMeta.label}</span>
           </div>
+          {/* Visualizers tabs */}
           <div className="seg">
             <div className={"seg__opt" + (view === "grafo" ? " active" : "")} onClick={() => setView("grafo")}><Icon name="network" size={15} />Grafo</div>
             <div className={"seg__opt" + (view === "pivot" ? " active" : "")} onClick={() => setView("pivot")}><Icon name="table" size={15} />Pivot</div>
             <div className={"seg__opt" + (view === "cards" ? " active" : "")} onClick={() => setView("cards")}><Icon name="grid" size={15} />Comparar</div>
           </div>
         </div>
+        {/* Metric tip reminder tooltip */}
         <div className="mt-3 flex items-start gap-1.5 text-[11.5px] leading-snug text-meta-navy-50">
           <Icon name="info" size={12} className="mt-0.5 shrink-0" />
           <span>{METRIC_HINT[metric]} As métricas disponíveis mudam conforme a dimensão A — só aparecem as que o banco sustenta sem inflar ou zerar.</span>
         </div>
       </div>
 
+      {/* CONDITIONAL VISUAL RENDER BLOCK */}
       {view === "grafo" && <GraphView aTotals={aTotals} bTotals={bTotals} val={val} dimAmeta={dimAmeta} dimBmeta={dimBmeta} fmt={fmt} sel={sel} setSel={setSel} />}
       {view === "pivot" && <PivotView aTotals={aTotals} bTotals={bTotals} val={val} fmt={fmt} dimAmeta={dimAmeta} dimBmeta={dimBmeta} />}
       {view === "cards" && <CompareView aTotals={aTotals} val={val} fmt={fmt} dimBmeta={dimBmeta} metricMeta={metricMeta} />}
 
+      {/* Quick templates panel links */}
       <SectionTitle icon="spark">Leituras que o cruzamento revela</SectionTitle>
       <ResponsiveGrid cols="4-8-12" gap="md">
         {[
@@ -284,15 +413,86 @@ interface GraphEdge {
   value: number;
 }
 
-function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel }: { aTotals: ARow[]; bTotals: { b: string; t: number }[]; val: (c?: Cell) => number; dimAmeta: DimMeta; dimBmeta: DimMeta; fmt: (v: number) => string; sel: { side: "a" | "b"; i: number } | null; setSel: (s: { side: "a" | "b"; i: number } | null) => void; }) {
+/**
+ * GraphView Component
+ * Renders an interactive force-directed graph diagram representing the matrix.
+ * Includes nodes (A and B dimensions colored differently), edges matching relations,
+ * zooming/panning triggers, search filters, data size caps, and physics control (play/pause).
+ *
+ * @component
+ */
+function GraphView({
+  aTotals,
+  bTotals,
+  val,
+  dimAmeta,
+  dimBmeta,
+  fmt,
+  sel,
+  setSel,
+}: {
+  aTotals: ARow[];
+  bTotals: { b: string; t: number }[];
+  val: (c?: Cell) => number;
+  dimAmeta: DimMeta;
+  dimBmeta: DimMeta;
+  fmt: (v: number) => string;
+  sel: { side: "a" | "b"; i: number } | null;
+  setSel: (s: { side: "a" | "b"; i: number } | null) => void;
+}) {
+  /**
+   * Data size caps to keep the visualization clean.
+   * Can be 'top8', 'top15', or 'all'.
+   * @type {"top8" | "top15" | "all"}
+   */
   const [limitMode, setLimitMode] = useState<"top8" | "top15" | "all">("top15");
+
+  /**
+   * Physics loop toggle.
+   * @type {boolean}
+   */
   const [isSimulating, setIsSimulating] = useState(true);
+
+  /**
+   * Query string for search highlighting nodes.
+   * @type {string}
+   */
   const [searchQuery, setSearchQuery] = useState("");
+
+  /**
+   * SVG Zoom scale.
+   * @type {number}
+   */
   const [zoom, setZoom] = useState(1);
+
+  /**
+   * SVG Drag translation coordinates.
+   * @type {{ x: number; y: number }}
+   */
   const [pan, setPan] = useState({ x: 0, y: 0 });
+
+  /**
+   * ID of node being hovered.
+   * @type {string | null}
+   */
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
+
+  /**
+   * ID of node selected by click.
+   * @type {string | null}
+   */
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+
+  /**
+   * State counter incremented to force-reheat force physics simulation.
+   * @type {number}
+   */
   const [simTrigger, setSimTrigger] = useState(0);
+
+  /**
+   * Hydration check variable.
+   * @type {boolean}
+   */
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -309,7 +509,7 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
   const panStart = useRef({ x: 0, y: 0 });
   const dragStartPos = useRef({ x: 0, y: 0 });
 
-  // Slices based on limitMode
+  // Slices list based on limitMode selections
   const A = useMemo(() => {
     return limitMode === "top8"
       ? aTotals.slice(0, 8)
@@ -329,7 +529,7 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
   const maxT = useMemo(() => Math.max(...A.map((x) => x.total), 1), [A]);
   const maxB = useMemo(() => Math.max(...B.map((x) => x.t), 1), [B]);
 
-  // Generate edges list
+  // Compile structural edges array linking Side A to Side B nodes
   const edges = useMemo<GraphEdge[]>(() => {
     const list: GraphEdge[] = [];
     A.forEach((a) => {
@@ -349,16 +549,16 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
 
   const maxE = useMemo(() => Math.max(...edges.map((e) => e.value), 1), [edges]);
 
-  // Initialize nodes state and keep coordinates if they already exist
+  // Keep tracking nodes state list
   const [nodes, setNodes] = useState<GraphNode[]>([]);
 
+  // Effect to rebuild nodes list, preserving positions of existing ones
   useEffect(() => {
-    // Reconstrói a partir da ref (posições atuais), preservando quem permanece.
     const prevNodes = nodesRef.current;
     const nodeMap = new Map(prevNodes.map((n) => [n.id, n]));
     const nextNodes: GraphNode[] = [];
 
-    // A nodes (left)
+    // A nodes (left-side start positioning)
     A.forEach((a, i) => {
       const id = `a-${a.a}`;
       const existing = nodeMap.get(id);
@@ -378,7 +578,7 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
       });
     });
 
-    // B nodes (right)
+    // B nodes (right-side start positioning)
     B.forEach((b, i) => {
       const id = `b-${b.b}`;
       const existing = nodeMap.get(id);
@@ -398,18 +598,16 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
       });
     });
 
-    // Sincroniza a ref ANTES de a física reiniciar — senão o tick sobrescreve
-    // estes nós novos com a referência antiga (bug: o grafo não reconstruía ao
-    // trocar dimensão/métrica/limite e as arestas ficavam órfãs).
+    // Synchronize nodes ref before physics ticks restart to avoid overlaps
     nodesRef.current = nextNodes;
     setNodes(nextNodes);
 
-    // Reheat simulation on data changes
+    // Reheat simulation
     alphaRef.current = 1;
     setSimTrigger((prev) => prev + 1);
   }, [A, B, maxT, maxB]);
 
-  // Refs for the simulation loop
+  // Keep references to values inside the simulation ticks loop
   const nodesRef = useRef<GraphNode[]>([]);
   useEffect(() => {
     nodesRef.current = nodes;
@@ -428,17 +626,14 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
     setSimTrigger((prev) => prev + 1);
   };
 
-  // Force layout simulation loop
+  // Main force-layout physics simulation loop
   useEffect(() => {
     if (!isSimulating) return;
 
     let animId: number;
 
     const tick = () => {
-      if (alphaRef.current < 0.005) {
-        // Simulation cooled down
-        return;
-      }
+      if (alphaRef.current < 0.005) return;
 
       const currentNodes = [...nodesRef.current];
       const currentEdges = edgesRef.current;
@@ -447,7 +642,7 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
 
       const nodeMap = new Map(currentNodes.map((n) => [n.id, n]));
 
-      // Charge force (repulsion)
+      // 1. Charge Force (node repulsion)
       for (let i = 0; i < currentNodes.length; i++) {
         const n1 = currentNodes[i];
         for (let j = i + 1; j < currentNodes.length; j++) {
@@ -457,7 +652,6 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
           const distSq = dx * dx + dy * dy || 1;
           const dist = Math.sqrt(distSq);
 
-          // Repulsion strength (aumentada para dar mais espaçamento)
           const strength = (n1.r + n2.r) * 100 * alpha;
           const force = strength / distSq;
           const fx = (dx / dist) * force;
@@ -474,7 +668,7 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
         }
       }
 
-      // Link force (attraction)
+      // 2. Link Force (edge attraction)
       currentEdges.forEach((edge) => {
         const sourceNode = nodeMap.get(edge.source);
         const targetNode = nodeMap.get(edge.target);
@@ -484,7 +678,6 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
         const dy = targetNode.y - sourceNode.y;
         const dist = Math.sqrt(dx * dx + dy * dy) || 1;
 
-        // Ideal distance between connected nodes (aumentada para dar mais espaçamento)
         const desiredDist = 215;
         const k = 0.045 * alpha;
         const force = (dist - desiredDist) * k;
@@ -501,7 +694,7 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
         }
       });
 
-      // Gravity / centering
+      // 3. Center gravity pull & velocity integration
       const cx = W / 2;
       const cy = H / 2;
       currentNodes.forEach((node) => {
@@ -515,19 +708,17 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
           return;
         }
 
-        // Pull to center (suavizado para espalhar mais os nós)
         const dx = cx - node.x;
         const dy = cy - node.y;
         node.vx += dx * 0.0024 * alpha;
         node.vy += dy * 0.0024 * alpha;
 
-        // Apply velocity and damping
         node.x += node.vx;
         node.y += node.vy;
         node.vx *= 0.82;
         node.vy *= 0.82;
 
-        // Boundaries
+        // Keep inside boundary boxes
         node.x = Math.max(node.r + 15, Math.min(W - node.r - 15, node.x));
         node.y = Math.max(node.r + 15, Math.min(H - node.r - 15, node.y));
       });
@@ -535,7 +726,6 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
       nodesRef.current = currentNodes;
       setNodes(currentNodes);
 
-      // Decay alpha
       alphaRef.current = alpha * decay;
       animId = requestAnimationFrame(tick);
     };
@@ -544,7 +734,7 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
     return () => cancelAnimationFrame(animId);
   }, [isSimulating, edges, simTrigger]);
 
-  // Native wheel event listener to prevent default page scrolling while zooming
+  // Scroll wheel zoom event binding
   useEffect(() => {
     const svg = svgRef.current;
     if (!svg) return;
@@ -575,7 +765,6 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
   // Interaction Handlers
   const handleMouseDown = (e: React.MouseEvent<SVGElement>, nodeId?: string) => {
     if (nodeId) {
-      // Node drag start
       draggedNodeIdRef.current = nodeId;
       isDraggingNode.current = true;
       dragStartPos.current = { x: e.clientX, y: e.clientY };
@@ -587,7 +776,6 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
       }
       reheat();
     } else {
-      // Background pan start
       isPanning.current = true;
       panStart.current = { x: e.clientX - pan.x, y: e.clientY - pan.y };
     }
@@ -600,7 +788,6 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
     const my = e.clientY - rect.top;
 
     if (isDraggingNode.current && draggedNodeIdRef.current) {
-      // Calculate mouse position in SVG coordinates
       const svgX = (mx - pan.x) / zoom;
       const svgY = (my - pan.y) / zoom;
 
@@ -628,11 +815,9 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
       const dist = Math.sqrt(dx * dx + dy * dy);
 
       if (dist < 4) {
-        // It's a click, toggle selection
         const id = draggedNodeIdRef.current;
         setSelectedNodeId((prev) => (prev === id ? null : id));
       } else {
-        // Unpin on release
         const id = draggedNodeIdRef.current;
         setNodes((prev) =>
           prev.map((n) => {
@@ -661,10 +846,9 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
     setPan({ x: 0, y: 0 });
   };
 
-  // Highlight and connection filter logic
   const focusId = hoveredNodeId || selectedNodeId;
 
-  // Set of node ids matching search query
+  // Nodes matching search query
   const matchingNodeIds = useMemo(() => {
     if (!searchQuery) return new Set<string>();
     const q = searchQuery.toLowerCase();
@@ -673,12 +857,11 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
     );
   }, [nodes, searchQuery]);
 
-  // Set of active/highlighted node ids
+  // Set of node ids to highlight
   const activeNodeIds = useMemo(() => {
     const active = new Set<string>();
 
     if (matchingNodeIds.size > 0) {
-      // Highlight matching nodes and their neighbors
       matchingNodeIds.forEach((id) => {
         active.add(id);
         edges.forEach((e) => {
@@ -713,7 +896,6 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
     return edge.source === focusId || edge.target === focusId;
   };
 
-  // Shorten label for cleaner view
   const shorten = (s: string) => (s.length > 20 ? s.slice(0, 18) + "…" : s);
 
   if (!isMounted) {
@@ -742,7 +924,7 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          {/* Data limit selector */}
+          {/* Node limit mode controls toggle group */}
           <div className="flex items-center gap-1 bg-meta-navy-5 p-0.5 rounded-lg border border-meta-navy-10">
             <button
               onClick={() => setLimitMode("top8")}
@@ -776,7 +958,7 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
             </button>
           </div>
 
-          {/* Search Input */}
+          {/* Search bar inside HUD controls */}
           <div className="relative">
             <input
               type="text"
@@ -823,7 +1005,7 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
             onMouseLeave={handleMouseUp}
             style={{ display: "block", cursor: isPanning.current ? "grabbing" : "grab" }}
           >
-            {/* Legend inside SVG */}
+            {/* Color key Legend inside SVG canvas */}
             <g transform="translate(20, 25)" style={{ pointerEvents: "none" }}>
               <text
                 x={0}
@@ -851,9 +1033,9 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
               </text>
             </g>
 
-            {/* Main Transform Group for Pan and Zoom */}
+            {/* Transform container applying zooming and translation panning */}
             <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
-              {/* Edges */}
+              {/* Edges group wrapper */}
               <g className="edges-group">
                 {edges.map((e, i) => {
                   const sourceNode = nodes.find((n) => n.id === e.source);
@@ -877,7 +1059,7 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
                 })}
               </g>
 
-              {/* Nodes */}
+              {/* Nodes group wrapper */}
               <g className="nodes-group">
                 {nodes.map((node) => {
                   const active = isNodeActive(node.id);
@@ -898,7 +1080,7 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
                       }}
                       opacity={active ? 1 : 0.2}
                     >
-                      {/* Outer ring for highlight / hover */}
+                      {/* Highlight Outer ring circle */}
                       <circle
                         cx={0}
                         cy={0}
@@ -910,7 +1092,7 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
                         style={{ transition: "r 0.15s, stroke-width 0.15s" }}
                       />
 
-                      {/* Main Node Circle */}
+                      {/* Main solid circle representation */}
                       <circle
                         cx={0}
                         cy={0}
@@ -919,7 +1101,7 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
                         className="shadow-sm"
                       />
 
-                      {/* Value inside circle (only Side A if it fits) */}
+                      {/* Render text values inside circle for side A if space permits */}
                       {node.side === "a" && node.r > 15 && (
                         <text
                           x={0}
@@ -937,7 +1119,7 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
                         </text>
                       )}
 
-                      {/* Node Label (Text above) */}
+                      {/* Text label floating above circle */}
                       <text
                         x={0}
                         y={-node.r - 6}
@@ -963,7 +1145,7 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
             </g>
           </svg>
 
-          {/* Floating HUD controls */}
+          {/* Floating Canvas controls HUD panel */}
           <div className="absolute bottom-4 right-4 flex flex-col sm:flex-row items-center gap-2 bg-white/90 backdrop-blur-sm border border-meta-navy-10 p-2 rounded-xl shadow-md z-10">
             <div className="flex items-center gap-1">
               <button
@@ -990,6 +1172,7 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
             </div>
             <div className="hidden sm:block w-[1px] h-6 bg-meta-navy-10" />
             <div className="flex items-center gap-1">
+              {/* Force loop toggle */}
               <button
                 onClick={() => setIsSimulating(!isSimulating)}
                 title={isSimulating ? "Pausar Física" : "Iniciar Física"}
@@ -1006,6 +1189,7 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
                 />
                 {isSimulating ? "Física Ativa" : "Física Pausada"}
               </button>
+              {/* Unpin all fixed positions */}
               <button
                 onClick={releaseAllNodes}
                 title="Liberar todos os nós para flutuar"
@@ -1016,7 +1200,7 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
             </div>
           </div>
 
-          {/* Helper tip in bottom-left */}
+          {/* Quick HUD instructions in bottom-left */}
           <div className="absolute bottom-4 left-4 text-[11px] text-meta-navy-45 bg-white/75 backdrop-blur-xs px-2.5 py-1.5 rounded-lg border border-meta-navy-10 pointer-events-none hidden md:block">
             💡 Dica: Role scroll para zoom · Arraste o fundo para mover · Arraste nós para organizar
           </div>
@@ -1026,7 +1210,28 @@ function GraphView({ aTotals, bTotals, val, dimAmeta, dimBmeta, fmt, sel, setSel
   );
 }
 
-function PivotView({ aTotals, bTotals, val, fmt, dimAmeta, dimBmeta }: { aTotals: ARow[]; bTotals: { b: string; t: number }[]; val: (c?: Cell) => number; fmt: (v: number) => string; dimAmeta: DimMeta; dimBmeta: DimMeta; }) {
+/**
+ * PivotView Component
+ * Renders a cross-table heatmap representing relations values.
+ * Cells containing higher values carry darker background opacity levels.
+ *
+ * @component
+ */
+function PivotView({
+  aTotals,
+  bTotals,
+  val,
+  fmt,
+  dimAmeta,
+  dimBmeta,
+}: {
+  aTotals: ARow[];
+  bTotals: { b: string; t: number }[];
+  val: (c?: Cell) => number;
+  fmt: (v: number) => string;
+  dimAmeta: DimMeta;
+  dimBmeta: DimMeta;
+}) {
   const B = bTotals.slice(0, 8);
   const allVals = aTotals.flatMap((a) => B.map((b) => val(a.row.get(b.b))));
   const max = Math.max(...allVals, 1);
@@ -1052,6 +1257,7 @@ function PivotView({ aTotals, bTotals, val, fmt, dimAmeta, dimBmeta }: { aTotals
                 const v = val(a.row.get(b.b));
                 return (
                   <td key={b.b} className="text-center p-1 md:p-1.5">
+                    {/* Background transparency corresponds directly to relative cell value ratio */}
                     <div className="mx-auto grid place-items-center text-xs font-bold p-1 md:p-1.5 rounded" style={{ minWidth: 36, minHeight: 28, fontFamily: "var(--font-heading)", background: v ? `rgba(0,103,255,${0.07 + (0.55 * v) / max})` : "var(--meta-paper)", color: v > max * 0.55 ? "#fff" : "var(--meta-navy)" }}>{v ? fmt(v).replace("R$ ", "") : ""}</div>
                   </td>
                 );
@@ -1065,12 +1271,35 @@ function PivotView({ aTotals, bTotals, val, fmt, dimAmeta, dimBmeta }: { aTotals
   );
 }
 
-function CompareView({ aTotals, val, fmt, dimBmeta, metricMeta }: { aTotals: ARow[]; val: (c?: Cell) => number; fmt: (v: number) => string; dimBmeta: DimMeta; metricMeta: { id: string; label: string }; }) {
+/**
+ * CompareView Component
+ * Renders a side-by-side card comparison grid matching unique items.
+ *
+ * @component
+ */
+function CompareView({
+  aTotals,
+  val,
+  fmt,
+  dimBmeta,
+  metricMeta,
+}: {
+  aTotals: ARow[];
+  val: (c?: Cell) => number;
+  fmt: (v: number) => string;
+  dimBmeta: DimMeta;
+  metricMeta: { id: string; label: string };
+}) {
   const max = Math.max(...aTotals.map((a) => a.total), 1);
   return (
     <div className="grid-mvp cols-3 mb-6">
       {aTotals.map((a) => {
-        const tops = [...a.row.entries()].map(([b, cell]) => ({ b, v: val(cell) })).filter((x) => x.b !== "—" && x.v > 0).sort((x, y) => y.v - x.v).slice(0, 3);
+        // Find top 3 correlated B dimension records for this A dimension item
+        const tops = [...a.row.entries()]
+          .map(([b, cell]) => ({ b, v: val(cell) }))
+          .filter((x) => x.b !== "—" && x.v > 0)
+          .sort((x, y) => y.v - x.v)
+          .slice(0, 3);
         return (
           <div key={a.a} className="card card--pad">
             <div className="flex items-center justify-between">
@@ -1078,6 +1307,7 @@ function CompareView({ aTotals, val, fmt, dimBmeta, metricMeta }: { aTotals: ARo
               <div className="text-meta-gradient text-xl font-extrabold tracking-tight" style={{ fontFamily: "var(--font-heading)" }}>{fmt(a.total)}</div>
             </div>
             <div className="muted mb-2.5 text-[11.5px] text-meta-navy-50">{metricMeta.label.toLowerCase()}</div>
+            {/* Value fill progress bar */}
             <Bar value={(a.total / max) * 100} />
             <div className="mt-3.5">
               <div className="eyebrow-mini mb-2">Principais {dimBmeta.label.toLowerCase()}s</div>

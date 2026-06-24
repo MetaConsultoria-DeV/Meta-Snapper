@@ -1,5 +1,14 @@
 "use client";
 
+/**
+ * A themed dropdown selector component styled according to Meta Consultoria's design guidelines.
+ *
+ * @param {Object} props - Component properties.
+ * @param {string} props.value - The currently selected active value.
+ * @param {function} props.onChange - Event callback triggered when a selection changes.
+ * @param {[string, string][]} props.options - Array of key-label tuples representing option elements ([value, label]).
+ * @returns {JSX.Element} The styled Select input element.
+ */
 export function MetaSelect({
   value,
   onChange,

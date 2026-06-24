@@ -1,12 +1,23 @@
 import type { ReactNode } from "react";
 import { BRL } from "@/lib/mock-data";
 
+/**
+ * Standard data shape used by charts.
+ * @typedef {Object} ChartDatum
+ * @property {string} [label] - Categorical text label.
+ * @property {string} [name] - Fallback name.
+ * @property {number} value - Numeric metric value.
+ * @property {string} [color] - Optional inline style or Tailwind brand color modifier.
+ */
 export type ChartDatum = { label?: string; name?: string; value: number; color?: string };
 
-/* ---- Funil comercial 3D (SVG) ----
-   Camadas trapezoidais empilhadas com rim elíptico (profundidade), gradiente
-   ciano→azul por camada, sombra e linhas conectando cada fase aos dados à direita.
-   Fiel ao componente `Funnel` do MVP, reforçado com 3D/sombra/conectores. */
+/**
+ * Data structure representing a pipeline phase stage in the commercial sales funnel.
+ * @typedef {Object} FunnelStage
+ * @property {string} fase - The descriptive title of the phase (e.g. 'Proposta', 'Negociação').
+ * @property {number} qtd - Quantity of active opportunities in this phase.
+ * @property {number} valor - Combined financial value of opportunities in BRL.
+ */
 export type FunnelStage = { fase: string; qtd: number; valor: number };
 
 // Cores institucionais da Meta Consultoria com acabamento brilhoso/3D
@@ -91,6 +102,16 @@ function getStageGeometry(i: number, total: number) {
   return { topHW, botHW };
 }
 
+/**
+ * Renders a high-fidelity 3D SVG representation of the commercial sales funnel.
+ * Features stacked trapezoidal cylinders, volumetric highlight gradients, drop-shadow depth,
+ * connecting lines, conversion ratios, and callback events on segment selection.
+ *
+ * @param {Object} props - Component properties.
+ * @param {FunnelStage[]} props.stages - List of pipeline stages to display (maximum of 6).
+ * @param {function} [props.onPhase] - Optional callback triggered when a segment is clicked.
+ * @returns {JSX.Element} The rendered Funnel3D component.
+ */
 export function Funnel3D({
   stages,
   onPhase,
@@ -252,7 +273,16 @@ export function Funnel3D({
   );
 }
 
-/* ---- Mini bar chart (vertical) ---- */
+/**
+ * A vertical micro bar chart component suited for grid cards.
+ * Displays interactive bars with hovering scale animations, background tracks, and custom value formatting.
+ *
+ * @param {Object} props - Component properties.
+ * @param {ChartDatum[]} props.data - Dataset containing category labels and heights.
+ * @param {number} [props.height=130] - Height of the container element in pixels.
+ * @param {function} [props.fmt] - Optional formatting helper for top-positioned bar values.
+ * @returns {JSX.Element} The rendered BarChart component.
+ */
 export function BarChart({
   data,
   height = 130,
@@ -302,7 +332,19 @@ export function BarChart({
 }
 
 
-/* ---- Donut (SVG) ---- */
+/**
+ * An SVG-based responsive Donut chart with support for multiple segments,
+ * stroke offset calculation, custom segment coloring, and custom central overlay nodes.
+ *
+ * @param {Object} props - Component properties.
+ * @param {Object[]} props.segments - List of numeric values and hex/tailwind colors.
+ * @param {number} props.segments[].value - Numeric segment length.
+ * @param {string} props.segments[].color - Associated color string.
+ * @param {number} [props.size=132] - Diameter of the donut SVG element.
+ * @param {number} [props.thickness=18] - Stroke thickness of the donut rings.
+ * @param {ReactNode} [props.center] - Optional overlay node placed inside the donut center.
+ * @returns {JSX.Element} The rendered Donut component.
+ */
 export function Donut({
   segments,
   size = 132,

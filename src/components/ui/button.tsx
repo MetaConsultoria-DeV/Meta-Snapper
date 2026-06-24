@@ -40,6 +40,17 @@ const buttonVariants = cva(
   }
 )
 
+/**
+ * A highly configurable Button component wrapping Base UI's button primitives.
+ * Supports design system variants (default, outline, secondary, ghost, destructive, link)
+ * and size scales (default, xs, sm, lg, icon, icon-xs, icon-sm, icon-lg) via tailwind presets.
+ *
+ * @param {Object} props - Component properties.
+ * @param {string} [props.className] - Optional custom CSS style classes.
+ * @param {"default" | "outline" | "secondary" | "ghost" | "destructive" | "link"} [props.variant="default"] - Design variant theme style.
+ * @param {"default" | "xs" | "sm" | "lg" | "icon" | "icon-xs" | "icon-sm" | "icon-lg"} [props.size="default"] - Sizing preset.
+ * @returns {JSX.Element} The styled Button element.
+ */
 function Button({
   className,
   variant = "default",

@@ -3,12 +3,23 @@
 import { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
+/** Properties configured for the responsive Drawer container. */
 interface DrawerProps {
+  /** If true, opens the drawer layout onto the canvas view. */
   isOpen: boolean;
+  /** Event handler triggered to close the drawer layout (e.g. click overlay). */
   onClose: () => void;
+  /** Inner content elements to render. */
   children: ReactNode;
 }
 
+/**
+ * Mobile-responsive Drawer overlay container.
+ * Displays a slide-in sidebar menu on smaller viewports with a dimming backdrop overlay.
+ *
+ * @param {DrawerProps} props - Component properties.
+ * @returns {JSX.Element} The rendered mobile drawer container.
+ */
 export function Drawer({ isOpen, onClose, children }: DrawerProps) {
   return (
     <>

@@ -8,14 +8,19 @@ import { cn } from "@/lib/utils";
 import { periodoLabels, type Periodo, type PeriodoKey } from "@/lib/periodo";
 import LogoutButton from "@/components/LogoutButton";
 
+/** Properties configured for the TopBar component. */
 type TopBarProps = {
+  /** Event handler triggered to collapse/expand the desktop sidebar. */
   onToggleSidebar: () => void;
+  /** Event handler triggered to toggle the mobile drawer sidebar menu. */
   onToggleDrawer?: () => void;
+  /** The currently active temporal filter configuration. */
   periodo: Periodo;
+  /** Event handler triggered to update/persist the selected period filter. */
   onPeriodoChange: (p: Periodo) => void;
 };
 
-/** Páginas onde o recorte global não se aplica (e o porquê, no tooltip). */
+/** Pages where global time boundaries do not apply, mapped to their explaining tooltips. */
 const SEM_RECORTE: Record<string, string> = {
   "/mapa-pessoas": "Página estrutural — os dados não têm recorte temporal",
   "/projetos": "Projetos não têm datas confiáveis no banco para recortar",
@@ -24,6 +29,13 @@ const SEM_RECORTE: Record<string, string> = {
 
 const fmtBR = (s?: string) => (s ? s.split("-").reverse().slice(0, 2).join("/") : "…");
 
+/**
+ * Top header bar component ("TopBar") containing breadcrumb titles, search shortcuts,
+ * temporal filter tabs, custom calendar range controls, and profile actions.
+ *
+ * @param {TopBarProps} props - Component properties.
+ * @returns {JSX.Element} The rendered TopBar component.
+ */
 export function TopBar({ onToggleSidebar, onToggleDrawer, periodo, onPeriodoChange }: TopBarProps) {
   const pathname = usePathname();
   const crumb = ROUTE_CRUMB[pathname] ?? "BDU";

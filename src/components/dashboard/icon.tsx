@@ -75,6 +75,16 @@ const ICONS: Record<string, LucideIcon> = {
   spark: Sparkles,
 };
 
+/**
+ * A wrapper component to dynamically resolve and render Lucide Icons by name.
+ * Falls back to the 'Info' icon if the specified name is not found in the mappings.
+ *
+ * @param {Object} props - Component properties.
+ * @param {string} props.name - The mapped key of the icon to render (e.g. 'home', 'people', 'projects').
+ * @param {number} [props.size=18] - Diameter size of the icon element in pixels.
+ * @param {string} [props.className] - Optional Tailwind CSS classes or custom styles.
+ * @returns {JSX.Element} The resolved Lucide Icon component.
+ */
 export function Icon({
   name,
   size = 18,

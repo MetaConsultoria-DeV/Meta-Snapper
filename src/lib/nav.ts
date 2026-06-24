@@ -9,6 +9,14 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+/**
+ * Represents a single link item in the sidebar navigation.
+ * @typedef {Object} NavItem
+ * @property {string} href - Path navigation link.
+ * @property {string} label - Display name label.
+ * @property {LucideIcon} icon - Lucide Icon component class.
+ * @property {string} [badge] - Optional status badge text.
+ */
 export type NavItem = {
   href: string;
   label: string;
@@ -16,12 +24,20 @@ export type NavItem = {
   badge?: string;
 };
 
+/**
+ * Group wrapper representing a categorized list of navigation links in the sidebar menu.
+ * @typedef {Object} NavGroup
+ * @property {string} group - Classification category name.
+ * @property {NavItem[]} items - Array of navigation items.
+ */
 export type NavGroup = {
   group: string;
   items: NavItem[];
 };
 
-/** Estrutura de navegação espelhada do MVP (shell.jsx → NAV). */
+/**
+ * Enterprise navigation configuration matching the desktop/mobile sidebar layout hierarchy.
+ */
 export const NAV: NavGroup[] = [
   {
     group: "Visão geral",
@@ -50,7 +66,9 @@ export const NAV: NavGroup[] = [
   },
 ];
 
-/** Mapa rota → breadcrumb. */
+/**
+ * Map routing paths to breadcrumb display labels.
+ */
 export const ROUTE_CRUMB: Record<string, string> = {
   "/": "Visão Horizontal",
   "/mapa-pessoas": "Mapa & Pessoas",

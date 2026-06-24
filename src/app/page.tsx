@@ -16,6 +16,14 @@ const SISTEMA = (o: Awaited<ReturnType<typeof bduApi.overview>>) => [
   { href: "/financeiro", icon: "finance", label: "Financeiro", val: BRL(o.resultado), sub: "resultado no período", color: "#00B894", wide: true },
 ];
 
+/**
+ * Next.js Server Component representing the home dashboard view.
+ * Dynamically reads the active temporal range from cookies and fetches consolidated metrics overview
+ * and cell details concurrently from the FastAPI backend services.
+ * Implements graceful fallback displays in case of network or API failure.
+ *
+ * @returns {Promise<JSX.Element>} The rendered HomePage view.
+ */
 export default async function HomePage() {
   const { range } = await periodoAtivo();
   let o: Awaited<ReturnType<typeof bduApi.overview>>;

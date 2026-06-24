@@ -11,8 +11,19 @@ import { Icon } from "@/components/dashboard/icon";
 import { ResponsiveGrid } from "@/components/ui/responsive-grid";
 import { AdaptiveTable } from "@/components/ui/adaptive-table";
 
-/** Curadoria das fases cruas do Pipefy → pipeline ativo + estados terminais. */
+/**
+ * Union type representing the classification of pipeline phases.
+ * @typedef {("ganho" | "perdido" | "postergado" | "ativo")} FaseTipo
+ */
 type FaseTipo = "ganho" | "perdido" | "postergado" | "ativo";
+
+/**
+ * Classifies raw Pipefy stages into standardized pipeline categories.
+ *
+ * @function classificar
+ * @param {string} fase - The raw phase string from Pipefy.
+ * @returns {FaseTipo} The classified phase type.
+ */
 function classificar(fase: string): FaseTipo {
   const n = fase.toLowerCase();
   if (n.includes("fechad") || n.includes("ganho")) return "ganho";
@@ -21,7 +32,10 @@ function classificar(fase: string): FaseTipo {
   return "ativo";
 }
 
-/** Status terminal da oportunidade → rótulo + cor do badge. */
+/**
+ * Terminal status configuration maps containing label translation and Tailwind badge style.
+ * @type {Record<string, { label: string; cls: string }>}
+ */
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   ativo: { label: "Ativo", cls: "badge--info" },
   fechado: { label: "Ganho", cls: "badge--success" },
@@ -30,9 +44,31 @@ const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   postergado: { label: "Postergado", cls: "badge--warning" },
 };
 
-/** Data ISO (YYYY-MM-DD…) → DD/MM/AAAA. */
+/**
+ * Formats ISO date string (YYYY-MM-DD...) into localized format (DD/MM/YYYY).
+ * Falls back to em-dash if input is null.
+ *
+ * @function fmtData
+ * @param {string | null} s - ISO date string.
+ * @returns {string} Formatted date.
+ */
 const fmtData = (s: string | null) => (s ? s.slice(0, 10).split("-").reverse().join("/") : "—");
 
+/**
+ * ComercialView Component
+ * Renders the primary dashboard view for commercial opportunity and client tracking.
+ * Displays the 3D pipeline funnel, conversion rates, lead origins, loss reasons breakdown
+ * using a donut chart, and lists active opportunities/clients inside tab panels with complete pagination controls.
+ *
+ * @component
+ * @param {Object} props - Component props.
+ * @param {FunilFaseDTO[]} props.funil - The pipeline funnel phases aggregated dataset.
+ * @param {OportunidadeDTO[]} props.oportunidades - Raw list of individual sales opportunities.
+ * @param {NomeQtdDTO[]} props.origens - Statistics of lead sources.
+ * @param {NomeQtdDTO[]} props.motivosPerda - List of top reasons for lost opportunities.
+ * @param {ClienteComercialDTO[]} props.clientes - Associated commercial clients summary.
+ * @param {string} props.periodoLabel - Visual description string of the active global period.
+ */
 export function ComercialView({
   funil,
   oportunidades,
@@ -47,17 +83,39 @@ export function ComercialView({
   motivosPerda: NomeQtdDTO[];
   clientes: ClienteComercialDTO[];
   periodoLabel: string;
-}) {
+ }) {
+  /**
+   * The currently active tab panel selection.
+   * Can be 'oportunidades' or 'clientes'.
+   * @type {"oportunidades" | "clientes"}
+   */
   const [tab, setTab] = useState<"oportunidades" | "clientes">("oportunidades");
+
+  /**
+   * Stage filter select option value for opportunities list.
+   * Defaults to 'todas' (no filter).
+   * @type {string}
+   */
   const [fFase, setFFase] = useState("todas");
+
+  /**
+   * Active pagination page number for opportunities table list.
+   * @type {number}
+   */
   const [currentPage, setCurrentPage] = useState(1);
 
+  /**
+   * Update filter phase selection and reset pagination back to first page.
+   *
+   * @function updateFase
+   * @param {string} novaFase - The target phase select filter.
+   */
   const updateFase = (novaFase: string) => {
     setFFase(novaFase);
     setCurrentPage(1);
   };
 
-  // Ordem cronológica desejada para as fases ativas (excluindo Validação com Adm-Fin)
+  // Expected chronological ordering of active stages for display (Validação Adm-Fin excluded)
   const ORDEM_ATIVO = [
     "Caixa de Entrada",
     "Ligação Diagnóstico",
@@ -67,7 +125,8 @@ export function ComercialView({
     "Pré-Assinatura de Contrato",
   ];
 
-  // separa pipeline ativo dos estados terminais
+  // DERIVE PIPELINE GROUPS AND STATS:
+  // Filters out terminal statuses and classifies active pipeline stages.
   const ativoBruto = funil.filter((f) => classificar(f.fase) === "ativo");
   const ativo = ORDEM_ATIVO.map((nomeFase) => {
     const encontrada = ativoBruto.find((f) => f.fase.toLowerCase() === nomeFase.toLowerCase());
@@ -77,16 +136,20 @@ export function ComercialView({
   const ganho = funil.filter((f) => classificar(f.fase) === "ganho");
   const perdido = funil.filter((f) => classificar(f.fase) === "perdido");
   const postergado = funil.filter((f) => classificar(f.fase) === "postergado");
+
+  // Sum utility helper
   const sum = (arr: FunilFaseDTO[], k: "qtd" | "valor") => arr.reduce((s, f) => s + f[k], 0);
 
   const ganhoQtd = sum(ganho, "qtd");
   const perdidoQtd = sum(perdido, "qtd");
   const pipelineQtd = sum(ativo, "qtd");
-  // `valor_fechado` só existe para oportunidades fechadas/terminais — pipeline ativo
-  // não tem valor no banco. Usamos o valor GANHO (real e que varia por período).
+
+  // Note: `valor_fechado` only exists for won/closed terminal contracts in database.
+  // Active pipeline deals do not carry real value in the database.
   const ganhoValor = sum(ganho, "valor");
   const conversao = ganhoQtd + perdidoQtd > 0 ? Math.round((ganhoQtd / (ganhoQtd + perdidoQtd)) * 100) : 0;
 
+  // Build the list of stages in drop-down options including active and terminal stages.
   const faseOptions = [
     "todas",
     ...ORDEM_ATIVO,
@@ -98,20 +161,27 @@ export function ComercialView({
       ),
     ),
   ];
+
+  // PAGINATION SETTINGS:
   const PAGE_SIZE = 200;
+  // Apply stage filter
   const filteredOpps = fFase === "todas"
     ? oportunidades
     : oportunidades.filter((o) => o.fase.toLowerCase() === fFase.toLowerCase());
 
   const totalItems = filteredOpps.length;
   const totalPages = Math.ceil(totalItems / PAGE_SIZE);
+  // Ensure activePage falls within valid range bounds
   const activePage = Math.min(currentPage, Math.max(totalPages, 1));
   const startIndex = (activePage - 1) * PAGE_SIZE;
+  // Get sliced subset representing the current page items
   const opps = filteredOpps.slice(startIndex, startIndex + PAGE_SIZE);
+
+  // Layout color palette mapping
   const palette = ["#E5484D", "#F5A623", "#7C4DFF", "#6B7299", "#B5BACC", "#22C0FF"];
 
-  // Motivos de perda: lista mostra TODOS; o donut agrupa top 5 + "Outros" (resto),
-  // mantendo o total correto no centro.
+  // MOTIVOS DE PERDA GROUPING:
+  // Show full list. The Donut chart maps Top 5 items and bundles the remaining items into "Outros".
   const totalPerdas = motivosPerda.reduce((s, m) => s + m.qtd, 0);
   const restoPerdas = motivosPerda.slice(5).reduce((s, m) => s + m.qtd, 0);
   const donutSegs = [
@@ -121,13 +191,14 @@ export function ComercialView({
 
   return (
     <div className="mx-auto max-w-[1480px]">
+      {/* Page Header */}
       <PageHeader
         eyebrow="Comercial & Financeiro"
         title="Comercial, Oportunidades & Clientes"
         description="O fluxo comercial da Meta de ponta a ponta. Use o filtro de período no topo para recortar a leitura."
       />
 
-      {/* Indicador do recorte global — o controle fica no topo e vale para todas as páginas. */}
+      {/* Global active period indicator message banner */}
       <div className="mb-6 flex flex-wrap items-center gap-2">
         <span className="inline-flex items-center gap-1.5 rounded-full bg-meta-blue/10 px-3 py-1 text-[12px] font-semibold text-meta-blue">
           <Icon name="checkCircle" size={13} /> Lendo: {periodoLabel}
@@ -135,9 +206,9 @@ export function ComercialView({
         <span className="text-[12px] text-meta-navy-50">Ajuste o período no filtro do topo.</span>
       </div>
 
-      {/* HEADER: FUNIL ATIVO + TERMINAIS */}
+      {/* HEADER SECTION: FUNNEL AND DEALS OUTCOMES */}
       <ResponsiveGrid cols="4-8-12" gap="md" className="mb-6 items-start">
-        {/* Funnel card - 4/8 on mobile, 6 on tablet, 7 on desktop */}
+        {/* Active Pipeline 3D Funnel - responsiveness grid sizing */}
         <div className="col-span-4 md:col-span-4 lg:col-span-7 overflow-hidden rounded-[18px] text-white" style={{ background: "var(--meta-navy)" }}>
           <div className="relative px-4 md:px-6 py-4 md:py-6">
             <div className="absolute inset-0 opacity-25" style={{ background: "url('/brand/network-corner.png') no-repeat top right", backgroundSize: "220px" }} />
@@ -154,6 +225,7 @@ export function ComercialView({
                   <div className="text-[10px] md:text-[11px] text-meta-navy-30 whitespace-nowrap">ganho / (ganho+perdido)</div>
                 </div>
               </div>
+              {/* Funnel chart renderer */}
               <div className="overflow-x-auto">
                 <div style={{ minWidth: "300px" }}>
                   <Funnel3D
@@ -166,7 +238,7 @@ export function ComercialView({
           </div>
         </div>
 
-        {/* terminais: atual vs histórico - 4/8 on mobile, 4 on tablet, 5 on desktop */}
+        {/* Terminal Outcomes summary cards */}
         <div className="col-span-4 md:col-span-4 lg:col-span-5 flex flex-col gap-4">
           <Card title="Desfecho no período" sub="Estados terminais — fora do pipeline ativo">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 md:gap-3">
@@ -187,6 +259,8 @@ export function ComercialView({
               Ganhos/Perdidos/Postergados não inflam o funil ativo — leitura atual protegida.
             </div>
           </Card>
+
+          {/* Lead Origins bar breakdown chart */}
           <Card title="Origem das oportunidades" sub="De onde vêm as demandas (no período)">
             <div className="mt-1 flex flex-col gap-2">
               {origens.slice(0, 5).map((o, i) => {
@@ -207,19 +281,24 @@ export function ComercialView({
         </div>
       </ResponsiveGrid>
 
-      {/* motivos de perda */}
+      {/* Motivos de Perda breakdown */}
       {motivosPerda.length > 0 && (
         <ResponsiveGrid cols="4-8-12" gap="md" className="mb-6">
           <div className="col-span-4 md:col-span-8 lg:col-span-8">
             <Card title="Motivos de perda" sub={`Por que oportunidades não avançam (no período) · ${totalPerdas} perdas`}>
               <div className="flex flex-col lg:flex-row items-start gap-5 md:gap-6">
+                {/* Donut representation wrapper */}
                 <div className="mx-auto shrink-0 lg:mx-0">
                   <Donut size={120} segments={donutSegs} center={<div><div className="text-lg md:text-xl font-extrabold" style={{ fontFamily: "var(--font-heading)" }}>{totalPerdas}</div><div className="text-[9px] md:text-[10px] text-meta-navy-50">perdas</div></div>} />
                 </div>
+                {/* Detail list grid columns */}
                 <div className="grid w-full flex-1 min-w-0 grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
                   {motivosPerda.map((m, i) => (
                     <div key={i} className="flex items-center justify-between gap-2 text-xs md:text-[13px]">
-                      <span className="flex items-center gap-2 min-w-0"><span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: i < 5 ? palette[i] : "#C8CEDC" }} /><span className="truncate" title={m.nome}>{m.nome}</span></span>
+                      <span className="flex items-center gap-2 min-w-0">
+                        <span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: i < 5 ? palette[i] : "#C8CEDC" }} />
+                        <span className="truncate" title={m.nome}>{m.nome}</span>
+                      </span>
                       <b style={{ fontFamily: "var(--font-heading)" }} className="shrink-0">{m.qtd}</b>
                     </div>
                   ))}
@@ -227,6 +306,7 @@ export function ComercialView({
               </div>
             </Card>
           </div>
+          {/* Quick period summary card */}
           <div className="col-span-4 md:col-span-8 lg:col-span-4">
             <Card title="Resumo do período" sub={periodoLabel}>
               <div className="grid grid-cols-2 gap-3 md:gap-4">
@@ -240,12 +320,13 @@ export function ComercialView({
         </ResponsiveGrid>
       )}
 
-      {/* TABS */}
+      {/* VIEW TABS SELECTION */}
       <div className="my-6 mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="seg">
           <div className={"seg__opt" + (tab === "oportunidades" ? " active" : "")} onClick={() => setTab("oportunidades")}><Icon name="target" size={15} />Oportunidades</div>
           <div className={"seg__opt" + (tab === "clientes" ? " active" : "")} onClick={() => setTab("clientes")}><Icon name="building" size={15} />Clientes</div>
         </div>
+        {/* Stage selection filters (Only visible when opportunities tab is active) */}
         {tab === "oportunidades" && (
           <div className="w-full sm:w-auto">
             <MetaSelect value={fFase} onChange={updateFase} options={faseOptions.map((f) => [f, f === "todas" ? "Todas as fases" : f] as [string, string])} />
@@ -253,11 +334,21 @@ export function ComercialView({
         )}
       </div>
 
+      {/* TAB CONTENT PANEL */}
       {tab === "oportunidades" ? (
         <Card pad={false}>
+          {/* Opportunities table data display */}
           <AdaptiveTable className="max-h-96">
             <thead>
-              <tr><th className="min-w-12">ID</th><th className="min-w-20">Criado em</th><th className="min-w-32">Card / Contato</th><th className="min-w-20">Status</th><th className="min-w-24">Origem</th><th className="min-w-16">Coord.</th><th className="min-w-28">Motivo</th></tr>
+              <tr>
+                <th className="min-w-12">ID</th>
+                <th className="min-w-20">Criado em</th>
+                <th className="min-w-32">Card / Contato</th>
+                <th className="min-w-20">Status</th>
+                <th className="min-w-24">Origem</th>
+                <th className="min-w-16">Coord.</th>
+                <th className="min-w-28">Motivo</th>
+              </tr>
             </thead>
             <tbody>
               {opps.map((o) => {
@@ -276,14 +367,15 @@ export function ComercialView({
               })}
             </tbody>
           </AdaptiveTable>
-          {/* Paginação */}
+
+          {/* Table pagination control block */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-meta-navy-10 px-4 py-3 bg-meta-paper/50">
             <div className="text-xs md:text-sm text-meta-navy-50 muted">
               Exibindo {totalItems > 0 ? startIndex + 1 : 0} a {Math.min(startIndex + PAGE_SIZE, totalItems)} de {totalItems} {fFase !== "todas" ? `em "${fFase}"` : ""} (total: {oportunidades.length} no período).
             </div>
             {totalPages > 1 && (
               <div className="flex items-center gap-1.5">
-                {/* Botão Anterior */}
+                {/* Previous page trigger */}
                 <button
                   onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
                   disabled={activePage === 1}
@@ -292,7 +384,7 @@ export function ComercialView({
                   &lt;
                 </button>
 
-                {/* Números de Página */}
+                {/* Page numbers render logic block */}
                 {(() => {
                   const pages = [];
                   const maxVisible = 5;
@@ -304,6 +396,7 @@ export function ComercialView({
                     startPage = Math.max(1, endPage - maxVisible + 1);
                   }
                   
+                  // Render ellipsis and first page button if start is offset
                   if (startPage > 1) {
                     pages.push(
                       <button
@@ -327,6 +420,7 @@ export function ComercialView({
                     }
                   }
                   
+                  // Main visible page numbers range
                   for (let i = startPage; i <= endPage; i++) {
                     pages.push(
                       <button
@@ -343,6 +437,7 @@ export function ComercialView({
                     );
                   }
                   
+                  // Render ellipsis and last page button if end is offset
                   if (endPage < totalPages) {
                     if (endPage < totalPages - 1) {
                       pages.push(
@@ -369,7 +464,7 @@ export function ComercialView({
                   return pages;
                 })()}
 
-                {/* Botão Próximo */}
+                {/* Next page trigger */}
                 <button
                   onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
                   disabled={activePage === totalPages}
@@ -382,13 +477,16 @@ export function ComercialView({
           </div>
         </Card>
       ) : (
+        /* Clientes list cards grid */
         <ResponsiveGrid cols="4-8-12" gap="md">
           {clientes.slice(0, 30).map((c) => (
             <div key={c.id} className="col-span-4 md:col-span-4 lg:col-span-4 card card--pad flex flex-col gap-3">
+              {/* Client Title Header */}
               <div className="flex items-center gap-2 md:gap-3">
                 <span className="av-circ shrink-0" style={{ width: 38, height: 38, background: "#22C0FF", fontSize: 13 }}>{c.nome.slice(0, 2).toUpperCase()}</span>
                 <div className="text-sm md:text-[15px] font-bold min-w-0 truncate" style={{ fontFamily: "var(--font-heading)" }}>{c.nome}</div>
               </div>
+              {/* Clientes stats details */}
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                 <div><div className="text-base md:text-lg font-bold" style={{ fontFamily: "var(--font-heading)" }}>{c.oportunidades}</div><div className="muted text-[10px] md:text-[11px] text-meta-navy-50">oportunidades</div></div>
                 <div><div className="text-base md:text-lg font-bold" style={{ fontFamily: "var(--font-heading)" }}>{c.contratos}</div><div className="muted text-[10px] md:text-[11px] text-meta-navy-50">contratos</div></div>

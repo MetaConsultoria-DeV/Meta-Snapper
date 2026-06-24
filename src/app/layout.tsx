@@ -28,6 +28,15 @@ export const metadata: Metadata = {
     "Banco de Dados Único da Meta Consultoria — leitura horizontal e estratégica dos dados da empresa.",
 };
 
+/**
+ * Root Layout component for the Next.js application.
+ * Injects Google Fonts (Poppins, Inter, Geist Mono) into the HTML document classes,
+ * configures page language attributes, and renders the children within the global AppShell layout wrapper.
+ *
+ * @param {Object} props - Component properties.
+ * @param {React.ReactNode} props.children - Route target pages to render.
+ * @returns {JSX.Element} The HTML and body wrapper elements.
+ */
 export default function RootLayout({
   children,
 }: Readonly<{
