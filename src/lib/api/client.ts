@@ -7,11 +7,16 @@
  *
  * Base URL via env: `API_URL` (server-only). Por compatibilidade ainda lê
  * `NEXT_PUBLIC_API_URL` como fallback — prefira migrar o deploy para `API_URL`.
+ *
+ * `BDU_READ_TOKEN` (server-only, opcional): se definido, é enviado como
+ * `Authorization: Bearer` em toda chamada. Pareia com o gate fail-open do
+ * backend (router /api/bdu) — enquanto a env não existir nos dois lados, nada muda.
  */
 import "server-only";
 
 const BASE_URL =
   process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const READ_TOKEN = process.env.BDU_READ_TOKEN;
 
 export class ApiError extends Error {
   constructor(
@@ -46,7 +51,10 @@ function buildUrl(path: string, params?: RequestOptions["params"]) {
 export async function apiGet<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const res = await fetch(buildUrl(path, options.params), {
     method: "GET",
-    headers: { Accept: "application/json" },
+    headers: {
+      Accept: "application/json",
+      ...(READ_TOKEN ? { Authorization: `Bearer ${READ_TOKEN}` } : {}),
+    },
     cache: options.cache,
     next: options.next,
     signal: options.signal,
