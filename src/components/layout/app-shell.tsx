@@ -51,9 +51,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <Sidebar collapsed={collapsed} />
+      <Sidebar collapsed={collapsed} className="hidden md:flex" />
       <Drawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)}>
-        <Sidebar collapsed={false} />
+        <Sidebar collapsed={false} className="flex w-full" onNavigate={() => setDrawerOpen(false)} />
       </Drawer>
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar

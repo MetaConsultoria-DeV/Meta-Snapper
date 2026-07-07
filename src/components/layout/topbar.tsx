@@ -84,7 +84,7 @@ export function TopBar({ onToggleSidebar, onToggleDrawer, periodo, onPeriodoChan
   };
 
   return (
-    <header className="flex h-16 items-center gap-4 border-b border-border bg-card px-4 md:px-5">
+    <header className="flex min-h-16 flex-wrap items-center gap-x-4 gap-y-2 border-b border-border bg-card px-4 py-2 md:h-16 md:flex-nowrap md:py-0 md:px-5">
       {/* Mobile hamburger */}
       <button
         onClick={onToggleDrawer}
@@ -103,13 +103,11 @@ export function TopBar({ onToggleSidebar, onToggleDrawer, periodo, onPeriodoChan
         <PanelLeft size={18} />
       </button>
 
-      <div className="flex items-center gap-2 text-sm">
+      <div className="flex min-w-0 flex-1 items-center gap-2 text-sm">
         <span className="font-semibold text-muted-foreground">BDU</span>
-        <ChevronRight size={14} className="text-muted-foreground/60" />
-        <span className="font-semibold text-foreground">{crumb}</span>
+        <ChevronRight size={14} className="shrink-0 text-muted-foreground/60" />
+        <span className="truncate font-semibold text-foreground">{crumb}</span>
       </div>
-
-      <div className="flex-1" />
 
       <button className="hidden items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm text-muted-foreground hover:border-meta-blue/40 md:flex">
         <Search size={16} />
@@ -118,23 +116,26 @@ export function TopBar({ onToggleSidebar, onToggleDrawer, periodo, onPeriodoChan
       </button>
 
       <div
-        className={cn("relative", naoAplica && "opacity-45")}
+        className={cn(
+          "relative order-last min-w-0 basis-full md:order-none md:basis-auto",
+          naoAplica && "opacity-45",
+        )}
         title={naoAplica ?? "Recorte temporal (afeta as leituras com data)"}
       >
-        <div className="flex items-center gap-1 rounded-lg border border-border bg-background p-1">
+        <div className="flex items-center gap-1 overflow-x-auto rounded-lg border border-border bg-background p-1">
           <button
             disabled={!!naoAplica}
             onClick={() => setCalAberto((v) => !v)}
             title={naoAplica ?? "Intervalo específico (duas datas)"}
             className={cn(
-              "grid size-7 place-items-center rounded-md transition-colors",
+              "grid size-7 shrink-0 place-items-center rounded-md transition-colors",
               periodo.key === "custom" ? "bg-meta-blue text-white" : "text-muted-foreground hover:text-foreground",
             )}
           >
             <Calendar size={15} />
           </button>
           {periodo.key === "custom" && (
-            <span className="px-1 text-[11px] font-semibold text-meta-blue">
+            <span className="shrink-0 whitespace-nowrap px-1 text-[11px] font-semibold text-meta-blue">
               {fmtBR(periodo.de)}–{fmtBR(periodo.ate)}
             </span>
           )}
@@ -144,7 +145,7 @@ export function TopBar({ onToggleSidebar, onToggleDrawer, periodo, onPeriodoChan
               disabled={!!naoAplica}
               onClick={() => onPeriodoChange({ key: c.key })}
               className={cn(
-                "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                "shrink-0 whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
                 periodo.key === c.key
                   ? "bg-meta-blue text-white"
                   : "text-muted-foreground hover:text-foreground",

@@ -12,17 +12,28 @@ import { cn } from "@/lib/utils";
  *
  * @param {Object} props - Component properties.
  * @param {boolean} props.collapsed - If true, collapses width to display only icon identifiers.
+ * @param {string} [props.className] - Extra classes controlling how/where the sidebar is shown
+ *   (e.g. `hidden md:flex` for the desktop rail, or full-width when hosted in the mobile drawer).
+ * @param {function} [props.onNavigate] - Called when a nav link is clicked (e.g. to close the mobile drawer).
  * @returns {JSX.Element} The rendered Sidebar component.
  */
-export function Sidebar({ collapsed }: { collapsed: boolean }) {
+export function Sidebar({
+  collapsed,
+  className,
+  onNavigate,
+}: {
+  collapsed: boolean;
+  className?: string;
+  onNavigate?: () => void;
+}) {
   const pathname = usePathname();
 
   return (
     <aside
       className={cn(
         "flex h-full flex-col bg-sidebar text-sidebar-foreground transition-[width] duration-300",
-        "hidden md:flex",
         collapsed ? "md:w-[76px]" : "md:w-[260px]",
+        className,
       )}
     >
       <div className="flex h-16 items-center gap-2 px-5">
@@ -58,6 +69,7 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={onNavigate}
                   title={item.label}
                   className={cn(
                     "mb-0.5 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors min-h-11",
